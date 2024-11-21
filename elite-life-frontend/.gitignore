@@ -1,0 +1,11 @@
+yarn.lock
+package-lock.json
+.yarn-integrity
+.package-lock.json
+
+Student/node_modules
+Student/.next
+Teacher/.next
+Teacher/node_modules
+Teacher/next-env.d.ts
+Student/next-env.d.ts

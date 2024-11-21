@@ -1,0 +1,173 @@
+INSERT INTO "Banks" ("Name","OrderNo") VALUES
+	 ('Vietcombank,VCB - Ngoại thương Việt Nam',1),
+	 ('Agribank - Ngân hàng Nông nghiệp và Phát triển Nông thôn VN',2),
+	 ('NHCSXH/VBSP - Ngân hàng Chính sách xã hội',2),
+	 ('VDB - Ngân hàng Phát triển Việt Nam',2),
+	 ('CB - Ngân hàng Xây dựng',2),
+	 ('Oceanbank - Ngân hàng Đại Dương',2),
+	 ('GPBank - Ngân hàng Dầu Khí Toàn Cầu',2),
+	 ('ACB - Ngân hàng Á Châu',2),
+	 ('TPBank - Ngân hàng Tiên Phong',2),
+	 ('Đông Á Bank, DAB - Ngân hàng Đông Á',2),
+	 ('SeABank - Ngân hàng Đông Nam Á',2),
+	 ('ABBANK - Ngân hàng An Bình',2),
+	 ('BacABank - Ngân hàng Bắc Á',2),
+	 ('VietCapitalBank - Ngân hàng Bản Việt',2),
+	 ('MSB - Hàng Hải Việt Nam',2),
+	 ('Techcombank, TCB - Kỹ Thương Việt Nam',2),
+	 ('KienLongBank - Kiên Long',2),
+	 ('Nam A Bank - Nam Á',2),
+	 ('National Citizen Bank, NCB - Quốc Dân',2),
+	 ('VPBank - Việt Nam Thịnh Vượng',2),
+	 ('HDBank - Phát triển nhà Thành phố Hồ Chí Minh',2),
+	 ('Orient Commercial Bank, OCB - Phương Đông',2),
+	 ('Military Bank, MB - Quân đội',2),
+	 ('PVcombank - Đại chúng Việt Nam',2),
+	 ('VIBBank, VIB - Quốc tế',2),
+	 ('Sài Gòn, SCB - Sài Gò',2),
+	 ('Saigonbank, SGB - Sài Gòn Công Thương',2),
+	 ('SHBank, SHB - Sài Gòn-Hà Nội',2),
+	 ('Sacombank, STB - Sài Gòn Thương Tín',2),
+	 ('VietABank, VAB - Việt Á',2),
+	 ('BaoVietBank, BVB - Bảo Việt',2),
+	 ('VietBank - Việt Nam Thương Tín',2),
+	 ('Petrolimex Group Bank, PG Bank - Xăng dầu Petrolimex',2),
+	 ('Eximbank, EIB - Xuất Nhập khẩu Việt Nam',2),
+	 ('LienVietPostBank, LPB - Bưu điện Liên Việt',2),
+	 ('VietinBank, CTG - Công Thương Việt Nam',2),
+	 ('BIDV, BID - Đầu tư và Phát triển Việt Nam',2),
+	 ('Deutsche Bank',999),
+	 ('Sparkasse',999),
+	 ('Deutsche Kreditbank AG',999),
+	 ('BNP Parisbas',999),
+	 ('ING DIBA',999),
+	 ('Ngân hàng Đức ',999),
+	 ('Ngân hàng Hàn Quốc',999);
+
+DELETE FROM "Products" WHERE "Id" <= 1;
+ALTER SEQUENCE "Products_Id_seq" RESTART 2;
+INSERT INTO "Products"
+("Id", "Name", "Price")
+VALUES(1, 'Combo SP', 3300000);
+
+DELETE FROM "Permissions" WHERE "Id" <= 295;
+ALTER SEQUENCE "Permissions_Id_seq" RESTART 296;
+INSERT INTO "Permissions" ("Id","Code","Name","Action","Controller","ApplicationType") VALUES
+	 (295,'contract_index','View Hợp đồng điện tử - Xem','index','Contract','User'),
+	 (294,'binaryTree_index','Sơ đồ cây nhị phân - Xem','index','BinaryTree','User'),
+	 (293,'collaborator_deposit','Danh sách NVKD - Nạp tiền ','deposit','collaborator','User'),
+	 (292,'withdrawlRequest_reject','Quản lý Yêu cầu rút tiền - Từ chối','reject','WithdrawalRequests','User'),
+	 (291,'withdrawlRequest_approve','Quản lý Yêu cầu rút tiền - Duyệt','approve','WithdrawalRequests','User'),
+	 (290,'withdrawlRequest_index','Quản lý Yêu cầu rút tiền - Xem','index','WithdrawalRequests','User'),
+	 (225,'userAccessHistories_Index','Lịch sử truy cập tài khoản - Xem','index','userAccessHitories','User'),
+	 (201,'userActivities_index','Lịch sử hoạt động - Xem','index','userActivities','User'),
+	 (140,'collaborator_unlock','Danh sách NVKD - Mở khóa','unlock','collaborator','User'),
+	 (137,'order_update','Danh sách hoá đơn - Cập nhật','update','order','User'),
+	 (119,'user_delete','Quản lý User (quản trị) - Xóa','delete','user','User'),
+	 (118,'user_update','Quản lý User (quản trị) - Cập nhật','update','user','User'),
+	 (117,'user_add','Quản lý User (quản trị) - Thêm','add','user','User'),
+	 (89,'permission_delete','Danh sách quyền (quản trị)  - Xóa','delete','permission','User'),
+	 (88,'permission_update','Danh sách quyền (quản trị)  - Chỉnh sửa','update','permission','User'),
+	 (87,'permission_add','Danh sách quyền (quản trị)  - Thêm','add','permission','User'),
+	 (86,'permission_list','Danh sách quyền (quản trị) - Xem','index','permission','User'),
+	 (85,'role_delete','Nhóm quyền (quản trị) - Xóa','delete','role','User'),
+	 (84,'role_update','Nhóm quyền (quản trị) - Cập nhật','update','role','User'),
+	 (83,'role_add','Nhóm quyền (quản trị) - Thêm','add','role','User'),
+	 (82,'role_index','Danh sách nhóm quyền (quản trị) - Xem','index','role','User'),
+	 (77,'product_delete','Danh mục Sản phẩm - Xóa','delete','product','User'),
+	 (76,'product_update','Danh mục Sản phẩm - Cập nhật','update','product','User'),
+	 (75,'product_add','Danh mục Sản phẩm - Thêm','add','product','User'),
+	 (41,'collaboratorbank_list','Quản lý TKNH - Xem','index','collaboratorbank','User'),
+	 (40,'collaboratorbank_update','Quản lý TKNH - Cập nhật','update','collaboratorbank','User'),
+	 (37,'collaborator_delete','Danh sách NVKD - Xóa','delete','collaborator','User'),
+	 (36,'product_list','Danh mục Sản phẩm - Xem','index','product','User'),
+	 (26,'user_manager','Quản lý User (quản trị) - Xem','index','user','User'),
+	 (17,'order_create','Danh sách hoá đơn - Thêm','add','order','User'),
+	 (15,'order_list','Danh sách hoá đơn - Xem','index','order','User'),
+	 (4,'collaborator_lock','Danh sách NVKD - Khóa','lock','collaborator','User'),
+	 (3,'collaborator_edit','Danh sách NVKD - Cập nhật','update','collaborator','User'),
+	 (2,'collaborator_list','Danh sách cộng tác viên - Xem','index','collaborator','User'),
+	 (1,'collaborator_add','Danh sách NVKD - Thêm','add','collaborator','User');
+
+DELETE FROM "Roles" WHERE "Id" <= 1;
+ALTER SEQUENCE "Roles_Id_seq" RESTART 2;
+INSERT INTO "Roles" ("Id","Name","Permission","ApplicationType") VALUES
+	 (1,'admin',NULL,'User');
+
+INSERT INTO "RolePermisions" ("RoleId","PermissionId") VALUES
+	 (1,295),
+	 (1,294),
+	 (1,293),
+	 (1,292),
+	 (1,291),
+	 (1,290),
+	 (1,225),
+	 (1,201),
+	 (1,140),
+	 (1,137),
+	 (1,119),
+	 (1,118),
+	 (1,117),
+	 (1,89),
+	 (1,88),
+	 (1,87),
+	 (1,86),
+	 (1,85),
+	 (1,84),
+	 (1,83),
+	 (1,82),
+	 (1,77),
+	 (1,76),
+	 (1,75),
+	 (1,41),
+	 (1,40),
+	 (1,37),
+	 (1,36),
+	 (1,26),
+	 (1,17),
+	 (1,15),
+	 (1,4),
+	 (1,3),
+	 (1,2),
+	 (1,1);
+
+DELETE FROM "Files" WHERE "Id" <= 30;
+ALTER SEQUENCE "Files_Id_seq" RESTART 31;
+INSERT INTO "Files" ("Id","Name","Type") VALUES
+	 (1,'Sơ yếu lý lịch',1),
+	 (2,'Chứng minh nhân dân/ CCCD công chứng',1),
+	 (3,'Giấy khai sinh bản sao',1),
+	 (4,'Chứng nhận sức khỏe đi lao động và du học',1),
+	 (5,'Bằng/ Học bạ/ Bảng điểm trung cấp, CĐ hoặc ĐH',1),
+	 (6,'Chứng chỉ tiếng Đức A2-B1-B2',1),
+	 (7,'Hộ chiếu còn giá trị sử dụng trên 12 tháng',1),
+	 (9,'Lý lịch tư pháp',1),
+	 (10,'Ảnh chụp 3x4 (12 cái), ảnh hộ chiếu 3.5x4.5 (12 cái)',1),
+	 (11,'Hợp đồng',1),
+	 (12,'Chứng minh nhân dân/ HC/ CCCD',2),
+	 (13,'Hợp đồng',2),
+	 (14,'Đơn yêu cầu',3),
+	 (15,'Chứng từ',4),
+	 (16,'Chứng minh nhân dân/ HC/ CCCD',5),
+	 (17,'Ảnh',5),
+	 (18,'Sơ yếu lý lịch',5),
+	 (19,'Bằng cấp khác',5),
+	 (20,'Ảnh đại diện',2),
+	 (21,'Ảnh đại diện',1),
+	 (22,'Ảnh đại diện',3),
+	 (8,'Giấy đăng ký kết hôn',1),
+	 (23,'Sơ yếu lí lịch',6),
+	 (24,'Thư động lực',6),
+	 (25,' Bằng tiếng Đức',6),
+	 (26,'Passport',6),
+	 (27,'Học bạ',6),
+	 (28,'Bằng tốt nghiệp THPT',6),
+	 (29,'Bằng tốt nghiệp THPT dịch thuật',6),
+	 (30,'Ảnh đại diện',7);
+
+DELETE FROM "Users" WHERE "Id" <= 1;
+ALTER SEQUENCE "Users_Id_seq" RESTART 2;
+INSERT INTO "Users"
+("Id", "UserName", "Password", "RoleId", "DisplayName", "Email", "Mobile", "Address", "Permission", "ApplicationType")
+VALUES(1, 'admin', 'a5801cd0b6f67e93daa4c5d80192d01c', 1, 'Admin', 'admin@gmail.com', '', 'Hà Nội', NULL, 'User');
+
