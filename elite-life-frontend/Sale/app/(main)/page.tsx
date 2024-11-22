@@ -140,9 +140,12 @@ const Dashboard = () => {
 
     const [showBuyDialog, setShowBuyDialog] = useState(false);
 
-    const accountName = "CT TNHH NC VA SX CN SINH HOC HANA";
-    const accountNumber = "668989896"
-    const bankName = "MB"
+    // Ẩn nút
+    const [isDisabled, setIsDisabled] = useState(false);
+
+    const accountName = "Công ty cổ phần tập đoàn ELITE LIFE";
+    const accountNumber = "368568686"
+    const bankName = "VIB"
 
     const applyLightTheme = () => {
         const lineOptions: ChartOptions = {
@@ -437,7 +440,7 @@ const Dashboard = () => {
                 <div className="card mb-0 bg-dh bg-dh2">
                     <div className="db-all">
                         <p>Hoa hồng khách hàng</p>
-                        <h3 className="m-0-h">{formatNumberWithThousandSeparator(storedbalance*100)}</h3>
+                        <h3 className="m-0-h">{formatNumberWithThousandSeparator(storedbalance)}</h3>
 			<h4>/
                             {formatNumberWithThousandSeparator(globalInfo?.Order?.CommissionCustomerMax)} - {formatNumberWithThousandSeparator(globalInfo?.Order?.CommissionCustomer)} đã hưởng
                         </h4>
@@ -453,7 +456,7 @@ const Dashboard = () => {
                 <div className="card mb-0 bg-dh bg-dh3">
                     <div className="db-all">
                         <p>Hoa Hồng NVKD</p>
-                        <h3 className="m-0">{formatNumberWithThousandSeparator(accumulateBalance*100)}</h3>
+                        <h3 className="m-0">{formatNumberWithThousandSeparator(accumulateBalance)}</h3>
                         <h4>/
                             {formatNumberWithThousandSeparator(globalInfo?.Order?.CommissionSaleMax)} - {formatNumberWithThousandSeparator(globalInfo?.Order?.CommissionSale)} đã hưởng
                         </h4>
@@ -604,7 +607,12 @@ const Dashboard = () => {
                             </div>
                             <span className="pb-1">Các yêu cầu rút tiền sẽ tạm thu thuế thu nhập cá nhân 10%</span>
                             <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={() => {
+                                if (isDisabled) return; // Không làm gì nếu nút đang bị vô hiệu hóa
+
+                                setIsDisabled(true);
+
                                 if (!bankIdOptionSelected || !BankNumber || !BankOwner || !WithdrawAmount) {
+                                    setIsDisabled(false);
                                     return;
                                 }
                                 message.current?.clear();
@@ -627,8 +635,16 @@ const Dashboard = () => {
                                         catchAxiosError({
                                             e, router, toast
                                         })
+                                    })
+                                    .finally(() => {
+                                        // Bật lại nút sau 2 phút
+                                        setTimeout(() => {
+                                            setIsDisabled(false);
+                                        }, 300000); // 120 giây = 2 phút
                                     });
-                            }}>Rút tiền</Button>
+                            }}
+                            disabled={isDisabled}
+                            >{isDisabled ? "Vui lòng chờ 5 phút..." : "Rút tiền"}</Button>
 
                         </TabPanel>
                         <TabPanel header="Rút hoa hồng">
@@ -681,7 +697,11 @@ const Dashboard = () => {
                             </div>
                             <Messages ref={message} />
                             <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={() => {
+                                if (isDisabled) return; // Không làm gì nếu nút đang bị vô hiệu hóa
+
+                                setIsDisabled(true);
                                 if (personalTransferAmount <= 0 || !WalletTypeFrom) {
+                                    setIsDisabled(false);
                                     return;
                                 }
                                 message.current?.clear();
@@ -706,8 +726,16 @@ const Dashboard = () => {
                                         catchAxiosError({
                                             e, router, toast
                                         })
+                                    })
+                                    .finally(() => {
+                                        // Bật lại nút sau 2 phút
+                                        setTimeout(() => {
+                                            setIsDisabled(false);
+                                        }, 300000); // 120 giây = 2 phút
                                     });
-                            }}>Chuyển tiền</Button>
+                            }}
+                            disabled={isDisabled}
+                            >{isDisabled ? "Vui lòng chờ 5 phút..." : "Chuyển tiền"}</Button>
                         </TabPanel>
                         <TabPanel header="Chuyển tiền HT">
                             <div className="dashboard-statisic-card-small bg-1">
@@ -745,7 +773,13 @@ const Dashboard = () => {
                             <Messages ref={message} />
 
                             <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={() => {
+                                
+                                if (isDisabled) return; // Không làm gì nếu nút đang bị vô hiệu hóa
+
+                                setIsDisabled(true);
+                                
                                 if (InternalTransferAmount <= 0 || !collabListSelected) {
+                                    setIsDisabled(false);
                                     return;
                                 }
                                 message.current?.clear();
@@ -768,8 +802,16 @@ const Dashboard = () => {
                                         catchAxiosError({
                                             e, router, toast
                                         })
+                                    })
+                                    .finally(() => {
+                                        // Bật lại nút sau 2 phút
+                                        setTimeout(() => {
+                                            setIsDisabled(false);
+                                        }, 300000); // 120 giây = 2 phút
                                     });
-                            }}>Chuyển tiền</Button>
+                            }} 
+                            disabled={isDisabled}
+                            >{isDisabled ? "Vui lòng chờ 5 phút..." : "Chuyển tiền"}</Button>
                         </TabPanel>
                     </TabView>
 
