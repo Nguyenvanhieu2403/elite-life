@@ -34,9 +34,9 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 old
-package-lock.json
-.env
-.env.prod
+#package-lock.json
+#.env
+#.env.prod
 /files
-.env.dev
-.env.global.prod
+#.env.dev
+#.env.global.prod
