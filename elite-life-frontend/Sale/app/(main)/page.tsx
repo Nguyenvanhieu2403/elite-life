@@ -143,6 +143,13 @@ const Dashboard = () => {
     // Ẩn nút
     const [isDisabled, setIsDisabled] = useState(false);
 
+    useEffect(() => {
+        const storedState = localStorage.getItem('isDisabled');
+        if (storedState === 'true') {
+          setIsDisabled(true); // Nếu đã vô hiệu hóa nút trước đó, giữ lại trạng thái
+        }
+      }, []);
+
     const accountName = "Công ty cổ phần tập đoàn ELITE LIFE";
     const accountNumber = "368568686"
     const bankName = "VIB"
@@ -615,6 +622,9 @@ const Dashboard = () => {
                                     setIsDisabled(false);
                                     return;
                                 }
+
+                                localStorage.setItem('isDisabled', 'true');
+
                                 message.current?.clear();
                                 WithdrawRequestService.create({
                                     BankId: bankIdOptionSelected,
@@ -625,26 +635,25 @@ const Dashboard = () => {
                                     if (response.status == true) {
                                         setWithdrawAmount(null)
                                         toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã tạo yêu cầu rút tiền thành công', life: 3000 });
-
+                                        setIsDisabled(false);
+                                        localStorage.removeItem('isDisabled');
                                         // retrieveCollaborator();
                                     } else {
                                         toast.current?.show({ severity: 'error', summary: 'Thất bại', detail: response.message?.WithdrawalAmount, life: 3000 });
+                                        setIsDisabled(false);
+                                        localStorage.removeItem('isDisabled');
                                     }
                                 })
                                     .catch((e) => {
                                         catchAxiosError({
                                             e, router, toast
                                         })
+                                        setIsDisabled(false);
+                                        localStorage.removeItem('isDisabled');
                                     })
-                                    .finally(() => {
-                                        // Bật lại nút sau 2 phút
-                                        setTimeout(() => {
-                                            setIsDisabled(false);
-                                        }, 300000); // 120 giây = 2 phút
-                                    });
                             }}
                             disabled={isDisabled}
-                            >{isDisabled ? "Vui lòng chờ 5 phút..." : "Rút tiền"}</Button>
+                            >{isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Rút tiền"}</Button>
 
                         </TabPanel>
                         <TabPanel header="Rút hoa hồng">
@@ -704,6 +713,9 @@ const Dashboard = () => {
                                     setIsDisabled(false);
                                     return;
                                 }
+
+                                localStorage.setItem('isDisabled', 'true');
+
                                 message.current?.clear();
                                 HomeService.personalMoneyTransfer({
                                     WalletTypeFrom: WalletTypeFrom,
@@ -716,26 +728,29 @@ const Dashboard = () => {
                                         setPersonalTransferAmount(0)
                                         toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã chuyển tiền thành công', life: 3000 });
                                         retrieveUserInfo()
+                                        setIsDisabled(false);
+                                        localStorage.removeItem('isDisabled');
+                                        setRoseBalance(0);
                                     } else {
                                         displayErrorMessage({
                                             isExport: false, message, response
                                         })
+                                        setIsDisabled(false);
+                                        localStorage.removeItem('isDisabled');
+                                        setRoseBalance(0);
                                     }
                                 })
                                     .catch((e) => {
                                         catchAxiosError({
                                             e, router, toast
                                         })
+                                        setIsDisabled(false);
+                                        localStorage.removeItem('isDisabled');
+                                        setRoseBalance(0);
                                     })
-                                    .finally(() => {
-                                        // Bật lại nút sau 2 phút
-                                        setTimeout(() => {
-                                            setIsDisabled(false);
-                                        }, 300000); // 120 giây = 2 phút
-                                    });
                             }}
                             disabled={isDisabled}
-                            >{isDisabled ? "Vui lòng chờ 5 phút..." : "Chuyển tiền"}</Button>
+                            >{isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Chuyển tiền"}</Button>
                         </TabPanel>
                         <TabPanel header="Chuyển tiền HT">
                             <div className="dashboard-statisic-card-small bg-1">
@@ -782,6 +797,9 @@ const Dashboard = () => {
                                     setIsDisabled(false);
                                     return;
                                 }
+
+                                localStorage.setItem('isDisabled', 'true');
+
                                 message.current?.clear();
                                 HomeService.internalTransfer({
                                     Available: InternalTransferAmount,
@@ -792,26 +810,26 @@ const Dashboard = () => {
                                         setInternalTransferAmount(0)
                                         toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã chuyển tiền thành công', life: 3000 });
                                         retrieveUserInfo()
+                                        setIsDisabled(false);
+                                        localStorage.removeItem('isDisabled');
                                     } else {
                                         displayErrorMessage({
                                             isExport: false, message, response
                                         })
+                                        setIsDisabled(false);
+                                        localStorage.removeItem('isDisabled');
                                     }
                                 })
                                     .catch((e) => {
                                         catchAxiosError({
                                             e, router, toast
                                         })
+                                        setIsDisabled(false);
+                                        localStorage.removeItem('isDisabled');
                                     })
-                                    .finally(() => {
-                                        // Bật lại nút sau 2 phút
-                                        setTimeout(() => {
-                                            setIsDisabled(false);
-                                        }, 300000); // 120 giây = 2 phút
-                                    });
                             }} 
                             disabled={isDisabled}
-                            >{isDisabled ? "Vui lòng chờ 5 phút..." : "Chuyển tiền"}</Button>
+                            >{isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Chuyển tiền"}</Button>
                         </TabPanel>
                     </TabView>
 

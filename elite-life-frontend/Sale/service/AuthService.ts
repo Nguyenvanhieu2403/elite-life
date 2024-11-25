@@ -21,6 +21,7 @@ class AuthService {
         localStorage.removeItem("tokenExpires");
         localStorage.removeItem("Info");
         localStorage.removeItem("Permissions");
+        localStorage.removeItem("isDisabled");
     }
     Register(register: RegisterModal) {
         const formData = objectToFormData(register)

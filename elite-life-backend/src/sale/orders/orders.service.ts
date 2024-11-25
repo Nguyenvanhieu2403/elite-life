@@ -255,6 +255,26 @@ export class OrdersService {
             IsSale: true
           })
         )
+
+    //     const existingCollaborator = await queryRunner.manager.findOne(Collaborators, { where: { Id: info.CollaboratorId } });
+
+    // if (existingCollaborator) {
+    //   // Nếu tồn tại, cập nhật
+    //   await queryRunner.manager.update(
+    //     Collaborators,
+    //     { Id: info.CollaboratorId },
+    //     { Rank: RankEnums.V, IsSale: true }
+    //   );
+    // } else {
+    //   // Nếu không tồn tại, tạo mới
+    //   await queryRunner.manager.save(
+    //     queryRunner.manager.create(Collaborators, {
+    //       Id: info.CollaboratorId,
+    //       Rank: RankEnums.V,
+    //       IsSale: true
+    //     })
+    //   );
+    // }
       }
 
       await queryRunner.manager.save(
