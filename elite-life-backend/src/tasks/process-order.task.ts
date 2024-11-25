@@ -854,24 +854,29 @@ export class ProcessOrder {
           })
         )
         if (orderGratitude.CommissionSale + valueUpdate == orderGratitude.CommissionSaleMax) {
-          let response = await this.payBack(queryRunner,
-            {
-              ProductId: orderGratitude.ProductId,
-              Value: orderGratitude.Value,
-              PayDate: moment().zone(7 * 60).startOf('day').toDate(),
-              Note: "Mua lại combo SP khi đạt cấp bậc >= V1",
-              OrderId: null,
-              NameSale: orderGratitude.NameSale,
-              AddressSale: orderGratitude.AddressSale,
-              MobileSale: orderGratitude.MobileSale
-            },
-            orderGratitude.Collaborator as Collaborators
-          )
-          if (response.status == false) {
-            throw new Error("Mua lại combo SP khi đạt cấp bậc >= V1 bị lỗi")
+          try {
+            let response = await this.payBack(queryRunner,
+              {
+                ProductId: orderGratitude.ProductId,
+                Value: orderGratitude.Value,
+                PayDate: moment().zone(7 * 60).startOf('day').toDate(),
+                Note: "Mua lại combo SP khi đạt cấp bậc >= V1",
+                OrderId: null,
+                NameSale: orderGratitude.NameSale,
+                AddressSale: orderGratitude.AddressSale,
+                MobileSale: orderGratitude.MobileSale
+              },
+              orderGratitude.Collaborator as Collaborators
+            );
+            
+            if (response.status == false) {
+              console.error("Mua lại combo SP khi đạt cấp bậc >= V1 bị lỗi");
+            }
+          } catch (error) {
+            console.error("Lỗi trong quá trình mua lại combo SP khi đạt cấp bậc >= V1:", error.message);
           }
-
         }
+        
       }
 
       while (true) {
@@ -888,7 +893,7 @@ export class ProcessOrder {
               Collaborator: true
             },
             order: {
-              CreatedAt: "desc"
+              CreatedAt: "desc" 
             }
           }
         )
@@ -1126,7 +1131,7 @@ export class ProcessOrder {
               });
             }
           };
-          rankNext = RankEnums.V;
+          // rankNext = RankEnums.V;
           // if (parent.UserName == 'EL001') debugger;
           if (childRanks.filter(s => s.Rank == RankEnums.V4).length >= 3 && totalAmount >= 69_000_000) {
             rankNext = RankEnums.V5
