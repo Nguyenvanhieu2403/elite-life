@@ -248,13 +248,16 @@ export class OrdersService {
           } as DeepPartial<Orders>),
         );
 
-        await queryRunner.manager.save(
-          queryRunner.manager.create(Collaborators, {
-            Id: info.CollaboratorId,
-            Rank: RankEnums.V,
-            IsSale: true
-          })
-        )
+        const existingCollaborator = await queryRunner.manager.findOne(Collaborators, { where: { Id: info.CollaboratorId } });
+        if(existingCollaborator.Rank == RankEnums.None) {
+          await queryRunner.manager.save(
+            queryRunner.manager.create(Collaborators, {
+              Id: info.CollaboratorId,
+              Rank: RankEnums.V,
+              IsSale: true
+            })
+          )
+        }
 
     //     const existingCollaborator = await queryRunner.manager.findOne(Collaborators, { where: { Id: info.CollaboratorId } });
 

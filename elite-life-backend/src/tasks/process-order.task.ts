@@ -695,7 +695,7 @@ export class ProcessOrder {
             percentCommission = 9
             break;
           case RankEnums.V3:
-            percentCommission = 10
+            percentCommission = 11
             break;
           case RankEnums.V4:
             percentCommission = 11
@@ -706,7 +706,7 @@ export class ProcessOrder {
           default:
             break;
         }
-        let valueOriginUpdate = (order.Value * percentCommission / 100);
+        let valueOriginUpdate = (order.Value * percentCommission / 100) / saleCount;
         let valueUpdate = Math.round(valueOriginUpdate * 1e8) / 1e8
         valueOriginUpdate = Math.round(valueOriginUpdate * 1e8) / 1e8
         let commissionSaleMax = orderGratitude.CommissionSaleMax * 0.9;
