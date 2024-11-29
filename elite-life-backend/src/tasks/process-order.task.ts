@@ -228,6 +228,31 @@ export class ProcessOrder {
       }
 
       // nhị phân
+      let binaryTreeNum = await queryRunner.manager.count(BinaryTrees)
+      let binaryTreeParentNum = Math.floor((binaryTreeNum + 1) / 2)
+
+      const parents = await queryRunner.manager.find(BinaryTrees, {
+        skip: binaryTreeParentNum == 0 ? 0 : binaryTreeParentNum - 1,
+        take: 1,
+        relations: {
+          Collaborator: true,
+        },
+        order: {
+          Id: 'ASC'
+        }
+      });
+
+      let parent = parents.length > 0 ? parents[0] : null
+
+      await queryRunner.manager.save(
+        queryRunner.manager.create(BinaryTrees, {
+          CollaboratorId: order.CollaboratorId,
+          OrderId: order.Id,
+          ParentId: parent ? parent.Id : null
+        } as DeepPartial<BinaryTrees>),
+      );
+
+      // tri ân
       try {
         let totalValue = 3450000 * 0.07; // 7% của giá trị mua hàng
         let levelNum: number = 1;
@@ -349,11 +374,10 @@ export class ProcessOrder {
         this.logger.error(`calcCustomer`);
         throw error;
       }
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(`calcCustomer`);
       throw error;
-    }       
+    }      
 
   }
 
