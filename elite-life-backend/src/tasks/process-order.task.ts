@@ -228,46 +228,56 @@ export class ProcessOrder {
       }
 
       // nhị phân
-      let binaryTreeNum = await queryRunner.manager.count(BinaryTrees)
-      let binaryTreeParentNum = Math.floor((binaryTreeNum + 1) / 2)
-
-      const parents = await queryRunner.manager.find(BinaryTrees, {
-        skip: binaryTreeParentNum == 0 ? 0 : binaryTreeParentNum - 1,
-        take: 1,
-        relations: {
-          Collaborator: true,
-        },
-        order: {
-          Id: 'ASC'
+      try {
+        let totalValue = 3450000 * 0.07; // 7% của giá trị mua hàng
+        let levelNum: number = 1;
+        let currentParents = []; // Danh sách các cha hiện tại
+        let totalCollaborators = 0; // Tổng số người trong các cấp cha (tối đa 21 người)
+        
+        // Bắt đầu từ người mua hàng (ví dụ người 8)
+        if (parent?.ParentId) {
+          const parentNode = await queryRunner.manager.findOne(BinaryTrees, {
+            where: { Id: parent.ParentId },
+            relations: { Collaborator: true },
+          });
+          if (parentNode) currentParents = [parentNode];
         }
-      });
-
-      let parent = parents.length > 0 ? parents[0] : null
-
-      await queryRunner.manager.save(
-        queryRunner.manager.create(BinaryTrees, {
-          CollaboratorId: order.CollaboratorId,
-          OrderId: order.Id,
-          ParentId: parent ? parent.Id : null
-        } as DeepPartial<BinaryTrees>),
-      );
-
-      // tri ân
-      let totalValue = 3450000 * 0.07;
-      let levelNum: number = 1;
-      let currentParents = [parent];
-      while (true) {
-        if (currentParents.length === 0) break; // Dừng nếu không còn cha ở cấp hiện tại
-        if (levelNum > 21) break; // Giới hạn duyệt tối đa 21 cấp
-        let numParents = currentParents.length; // Số lượng người trong cấp hiện tại
-        let valueShare = numParents > 0 ? totalValue / numParents : 0;
-        let nextParents: BinaryTrees[] = []; // Danh sách các nút cha cho cấp tiếp theo
       
-        // Duyệt qua từng nút cha trong danh sách hiện tại
-        for (const parent of currentParents) {
-          if (!parent) continue;
+        // Tìm tối đa 21 cha (mỗi tầng 1 cha)
+        let allParents: BinaryTrees[] = []; // Lưu tất cả các cha trong 21 tầng
+        while (true) {
+          if (currentParents.length === 0) break; // Dừng nếu không còn cha ở cấp hiện tại
+          if (levelNum > 21) break; // Giới hạn duyệt tối đa 21 cấp
       
-          // Tìm đơn hàng gắn liền với nút cha hiện tại
+          // Lưu cha vào danh sách
+          allParents.push(...currentParents);
+          totalCollaborators += currentParents.length; // Cộng số lượng người cha (1 người cho mỗi tầng)
+      
+          let nextParents: BinaryTrees[] = [];
+          for (const parent of currentParents) {
+            if (!parent) continue;
+      
+            // Lấy cha của người hiện tại
+            let grandParent = await queryRunner.manager.findOne(BinaryTrees, {
+              where: { Id: parent.ParentId },
+              relations: { Collaborator: true },
+            });
+      
+            if (grandParent) nextParents.push(grandParent); // Thêm cha vào danh sách để tiếp tục duyệt
+          }
+      
+          currentParents = nextParents; // Cập nhật danh sách cha cho cấp tiếp theo
+          levelNum++;
+        }
+      
+        // Chia đều giá trị cho các cha (mỗi cha nhận 7% chia đều)
+        let valueShare = totalValue / Math.min(21, totalCollaborators); // Chia đều cho số người cha trong 21 tầng
+      
+        // Cập nhật giá trị tri ân cho các cha
+        for (let i = 0; i < allParents.length && i < 21; i++) {
+          let parent = allParents[i];
+          
+          // Lấy thông tin đơn hàng của cha hiện tại
           let orderGratitude = await queryRunner.manager.findOne(Orders, {
             where: {
               CollaboratorId: parent.CollaboratorId,
@@ -278,46 +288,44 @@ export class ProcessOrder {
             },
           });
       
-          let valueUpdate = valueShare;
-      
-          if (valueUpdate > 0 && orderGratitude) {
-            // Cập nhật thông tin đơn hàng
+          if (valueShare > 0 && orderGratitude) {
+            // Cập nhật thông tin đơn hàng tri ân
             await queryRunner.manager.save(
               queryRunner.manager.create(Orders, {
                 Id: orderGratitude.Id,
-                CommissionCustomerGratitude: orderGratitude.CommissionCustomerGratitude + valueUpdate,
+                CommissionCustomerGratitude: orderGratitude.CommissionCustomerGratitude + valueShare,
               } as DeepPartial<Orders>)
             );
       
-            // Lưu chi tiết giao dịch
+            // Lưu chi tiết giao dịch tri ân
             await queryRunner.manager.save(
               queryRunner.manager.create(OrderDetails, {
                 CollaboratorId: orderGratitude.CollaboratorId,
                 OrderId: order.Id,
                 WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
-                Value: valueUpdate,
+                Value: valueShare,
                 Note: `Tri ân từ ${order.Collaborator.UserName}`,
               } as DeepPartial<OrderDetails>)
             );
       
-            // Cập nhật ví tri ân
+            // Cập nhật ví tri ân cho cha
             await queryRunner.manager
               .createQueryBuilder()
               .insert()
               .into(Wallets)
               .values({
                 CollaboratorId: orderGratitude.CollaboratorId,
-                Available: valueUpdate,
+                Available: valueShare,
                 WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
-                Total: valueUpdate,
+                Total: valueShare,
               })
               .onConflict(`("CollaboratorId", "WalletTypeEnums") DO UPDATE SET 
-                "Total" = "Wallets"."Total" + ${valueUpdate},
-                "Available" = "Wallets"."Available" + ${valueUpdate}`)
+                "Total" = "Wallets"."Total" + ${valueShare},
+                "Available" = "Wallets"."Available" + ${valueShare}`)
               .returning("*")
               .execute();
       
-            // Lưu chi tiết ví
+            // Lưu chi tiết ví tri ân
             let walletGratitude = await queryRunner.manager.findOne(Wallets, {
               where: {
                 CollaboratorId: orderGratitude.CollaboratorId,
@@ -330,34 +338,23 @@ export class ProcessOrder {
                 queryRunner.manager.create(WalletDetails, {
                   WalletId: walletGratitude.Id,
                   WalletType: walletGratitude.WalletTypeEnums,
-                  Value: valueUpdate,
+                  Value: valueShare,
                   Note: `Tri ân từ ${order.Collaborator.UserName}`,
                 })
               );
             }
           }
-      
-          // Lấy tất cả các nút con của nút cha hiện tại
-          let children = await queryRunner.manager.find(BinaryTrees, {
-            where: { ParentId: parent.Id },
-            relations: { Collaborator: true },
-          });
-      
-          // Thêm các nút con vào danh sách cấp tiếp theo
-          if (children && children.length > 0) {
-            nextParents.push(...children);
-          }
         }
-      
-        // Chuyển sang cấp tiếp theo
-        currentParents = nextParents;
-        levelNum++;
+      } catch (error) {
+        this.logger.error(`calcCustomer`);
+        throw error;
       }
-
-    } catch (error) {
-      this.logger.error(`calcCustomer`)
-      throw error;
     }
+    catch (error) {
+      this.logger.error(`calcCustomer`);
+      throw error;
+    }       
+
   }
 
   private async calcSale(queryRunner: QueryRunner, order: Orders) {
@@ -542,148 +539,9 @@ export class ProcessOrder {
               Note: `Hoa hồng giới thiệu hưởng ${commissionPercent}% từ DL${levelNum - 1} ${order.Collaborator.UserName}`
             })
           )
-
-          // if (valueOriginUpdate - valueUpdate > 0) {
-          //   let orderGratitude = await queryRunner.manager.findOne(Orders,
-          //     {
-          //       where: {
-          //         CollaboratorId: parent.Id,
-          //         IsProcess: true
-          //       },
-          //       order: {
-          //         CreatedAt: "desc"
-          //       }
-          //     }
-          //   )
-          //   await funcSale3(parent, orderGratitude, valueOriginUpdate - valueUpdate);
-          // }
         }
 
       }
-
-      // let funcV1 = async (parent: Partial<Collaborators>, orderGratitude: Orders, levelNum: number) => {
-      //   let percentCommission: number = 6;
-      //   switch (parent.Rank) {
-      //     case RankEnums.V1:
-      //       percentCommission = 6
-      //       break;
-
-      //     case RankEnums.V2:
-      //       percentCommission = 6
-      //       percentCommission += 3
-      //       break;
-      //     case RankEnums.V3:
-      //       percentCommission = 6
-      //       percentCommission += 3
-      //       percentCommission += 2
-      //       break;
-      //     case RankEnums.V4:
-      //       percentCommission = 6
-      //       percentCommission += 3
-      //       percentCommission += 2
-      //       percentCommission += 1
-      //       break;
-      //     case RankEnums.V5:
-      //       percentCommission = 6
-      //       percentCommission += 3
-      //       percentCommission += 2
-      //       percentCommission += 1
-      //       percentCommission += 1
-      //       break;
-      //     default:
-      //       break;
-      //   }
-      //   let valueOriginUpdate = order.Value * percentCommission / 100;
-      //   let valueUpdate = Math.round(valueOriginUpdate * 1e8) / 1e8
-      //   valueOriginUpdate = Math.round(valueOriginUpdate * 1e8) / 1e8
-      //   let commissionSaleMax = orderGratitude.CommissionSaleMax * 0.9;
-      //   // nếu vượt quá 1000%
-      //   if (orderGratitude.CommissionSale == orderGratitude.CommissionSaleMax) return;
-      //   // nết vượt quá 900%
-      //   else if (orderGratitude.CommissionSale >= commissionSaleMax) {
-      //     valueUpdate =
-      //       orderGratitude.CommissionSale + valueUpdate > orderGratitude.CommissionSaleMax
-      //         ? orderGratitude.CommissionSaleMax - orderGratitude.CommissionSale : valueUpdate
-
-      //     await funcSale3(parent, orderGratitude, valueUpdate);
-      //     // nếu vượt chưa quá 900%
-      //   } else {
-
-      //     valueUpdate =
-      //       orderGratitude.CommissionSale + valueUpdate > commissionSaleMax
-      //         ? commissionSaleMax - orderGratitude.CommissionSale : valueUpdate
-
-      //     await queryRunner.manager.save(
-      //       queryRunner.manager.create(Orders, {
-      //         Id: orderGratitude.Id,
-      //         CommissionSale2: orderGratitude.CommissionSale2 + valueUpdate,
-      //         CommissionSale: orderGratitude.CommissionSale + valueUpdate,
-      //       } as DeepPartial<Orders>),
-      //     );
-
-      //     await queryRunner.manager.save(
-      //       queryRunner.manager.create(OrderDetails, {
-      //         CollaboratorId: orderGratitude.CollaboratorId,
-      //         OrderId: order.Id,
-      //         WalletTypeEnums: WalletTypeEnums.Sale2,
-      //         Value: valueUpdate,
-      //         Note: `Thưởng Đại lý hưởng ${percentCommission}% từ DL${levelNum - 1} ${order.Collaborator.UserName}`
-      //       } as DeepPartial<OrderDetails>),
-      //     );
-
-      //     await queryRunner.manager.createQueryBuilder()
-      //       .insert()
-      //       .into(Wallets)
-      //       .values({
-      //         CollaboratorId: orderGratitude.CollaboratorId,
-      //         Available: valueUpdate,
-      //         WalletTypeEnums: WalletTypeEnums.Sale2,
-      //         Total: valueUpdate,
-      //       })
-      //       .onConflict(`("CollaboratorId", "WalletTypeEnums") DO UPDATE SET 
-      //       "Total" = "Wallets"."Total" + ${valueUpdate},
-      //       "Available" = "Wallets"."Available" + ${valueUpdate}`)
-      //       .returning("*")
-      //       .execute();
-
-      //     let walletShare = await queryRunner.manager.findOne(Wallets,
-      //       {
-      //         where: {
-      //           CollaboratorId: orderGratitude.CollaboratorId,
-      //           WalletTypeEnums: WalletTypeEnums.Sale2,
-      //         }
-      //       }
-      //     )
-
-      //     await queryRunner.manager.save(
-      //       queryRunner.manager.create(WalletDetails, {
-      //         WalletId: walletShare.Id,
-      //         WalletType: walletShare.WalletTypeEnums,
-      //         Value: valueUpdate,
-      //         Note: `Thưởng Đại lý hưởng ${percentCommission}% từ DL${levelNum - 1} ${order.Collaborator.UserName}`
-      //       })
-      //     )
-
-      //     if (valueOriginUpdate != valueUpdate && valueOriginUpdate - valueUpdate > 0) {
-      //       let orderGratitude = await queryRunner.manager.findOne(Orders,
-      //         {
-      //           where: {
-      //             CollaboratorId: parent.Id,
-      //             IsProcess: true
-      //           },
-      //           relations: {
-      //             Collaborator: true
-      //           },
-      //           order: {
-      //             CreatedAt: "desc"
-      //           }
-      //         }
-      //       )
-      //       await funcSale3(parent, orderGratitude, valueOriginUpdate - valueUpdate);
-      //     }
-      //   }
-
-      // }
 
       let funcV1New = async (collaborator: Partial<Collaborators>, orderGratitude: Orders, rankLevel: RankEnums, saleCount: number) => {
         let percentCommission: number = 6;
@@ -692,16 +550,16 @@ export class ProcessOrder {
             percentCommission = 6
             break;
           case RankEnums.V2:
-            percentCommission = 9
+            percentCommission = 3
             break;
           case RankEnums.V3:
-            percentCommission = 11
+            percentCommission = 2
             break;
           case RankEnums.V4:
-            percentCommission = 11
+            percentCommission = 1
             break;
           case RankEnums.V5:
-            percentCommission = 12
+            percentCommission = 1
             break;
           default:
             break;
@@ -797,115 +655,6 @@ export class ProcessOrder {
         }
 
       }
-
-    //   let funcV1New = async (
-    //     collaborator: Partial<Collaborators>, // Cộng tác viên hiện tại
-    //     orderGratitude: Orders, // Đơn hàng
-    //     rankLevel: RankEnums, // Rank của cộng tác viên
-    //     saleCount: number // Số lượng người bán (mặc định là 1)
-    // ) => {
-    //     const rankPercentages = {
-    //         [RankEnums.V1]: 6,
-    //         [RankEnums.V2]: 9,
-    //         [RankEnums.V3]: 10,
-    //         [RankEnums.V4]: 11,
-    //         [RankEnums.V5]: 12,
-    //     };
-    
-    //     // Giả sử bạn có danh sách tất cả cộng tác viên cần xét
-    //     const collaborators = await queryRunner.manager.find(Collaborators, {
-    //         where: {
-    //           Rank: MoreThanOrEqual(RankEnums.V1), // Chỉ lấy những người từ Rank V1 trở lên
-    //         },
-    //     });
-    
-    //     // Lặp qua từng cộng tác viên
-    //     for (const person of collaborators) {
-    //         const personRank = person.Rank; // Rank của cộng tác viên
-    //         const percentCommission = rankPercentages[personRank] || 0;
-    
-    //         // Tính hoa hồng cho từng người dựa vào Rank của họ
-    //         let valueOriginUpdate = (orderGratitude.Value * percentCommission / 100) / saleCount;
-    //         let valueUpdate = Math.round(valueOriginUpdate * 1e8) / 1e8;
-    
-    //         const commissionSaleMax = orderGratitude.CommissionSaleMax * 0.9;
-    
-    //         // Kiểm tra giới hạn hoa hồng
-    //         if (orderGratitude.CommissionSale >= orderGratitude.CommissionSaleMax) {
-    //             continue; // Bỏ qua nếu hoa hồng đã đạt tối đa
-    //         } else if (orderGratitude.CommissionSale + valueUpdate > commissionSaleMax) {
-    //             valueUpdate =
-    //                 orderGratitude.CommissionSale + valueUpdate > orderGratitude.CommissionSaleMax
-    //                     ? orderGratitude.CommissionSaleMax - orderGratitude.CommissionSale
-    //                     : valueUpdate;
-    
-    //             await funcSale3(person, orderGratitude, valueUpdate);
-    //         } else {
-    //             valueUpdate =
-    //                 orderGratitude.CommissionSale + valueUpdate > commissionSaleMax
-    //                     ? commissionSaleMax - orderGratitude.CommissionSale
-    //                     : valueUpdate;
-    
-    //             // Cập nhật vào Orders
-    //             await queryRunner.manager.save(
-    //                 queryRunner.manager.create(Orders, {
-    //                     Id: orderGratitude.Id,
-    //                     CommissionSale2: orderGratitude.CommissionSale2 + valueUpdate,
-    //                     CommissionSale: orderGratitude.CommissionSale + valueUpdate,
-    //                 } as DeepPartial<Orders>)
-    //             );
-    
-    //             // Thêm thông tin vào OrderDetails
-    //             await queryRunner.manager.save(
-    //                 queryRunner.manager.create(OrderDetails, {
-    //                     CollaboratorId: person.Id,
-    //                     OrderId: orderGratitude.Id,
-    //                     WalletTypeEnums: WalletTypeEnums.Sale2,
-    //                     Value: valueUpdate,
-    //                     Note: `Thưởng Đại lý ${personRank} hưởng ${percentCommission}% từ đơn hàng của ${collaborator.UserName}`,
-    //                 } as DeepPartial<OrderDetails>)
-    //             );
-    
-    //             // Cập nhật vào Wallets
-    //             await queryRunner.manager.createQueryBuilder()
-    //                 .insert()
-    //                 .into(Wallets)
-    //                 .values({
-    //                     CollaboratorId: person.Id,
-    //                     Available: valueUpdate,
-    //                     WalletTypeEnums: WalletTypeEnums.Sale2,
-    //                     Total: valueUpdate,
-    //                 })
-    //                 .onConflict(`("CollaboratorId", "WalletTypeEnums") DO UPDATE SET 
-    //                 "Total" = "Wallets"."Total" + ${valueUpdate},
-    //                 "Available" = "Wallets"."Available" + ${valueUpdate}`)
-    //                 .returning("*")
-    //                 .execute();
-    
-    //             const walletShare = await queryRunner.manager.findOne(Wallets, {
-    //                 where: {
-    //                     CollaboratorId: person.Id,
-    //                     WalletTypeEnums: WalletTypeEnums.Sale2,
-    //                 },
-    //             });
-    
-    //             // Thêm vào WalletDetails
-    //             await queryRunner.manager.save(
-    //                 queryRunner.manager.create(WalletDetails, {
-    //                     WalletId: walletShare.Id,
-    //                     WalletType: walletShare.WalletTypeEnums,
-    //                     Value: valueUpdate,
-    //                     Note: `Thưởng Đại lý ${personRank} hưởng ${percentCommission}% từ đơn hàng của ${collaborator.UserName}`,
-    //                 })
-    //             );
-    
-    //             // Nếu còn giá trị chưa phân phối, gọi lại funcSale3
-    //             if (valueOriginUpdate != valueUpdate && valueOriginUpdate - valueUpdate > 0) {
-    //                 await funcSale3(person, orderGratitude, valueOriginUpdate - valueUpdate);
-    //             }
-    //         }
-    //     }
-    //  };
     
 
       let funcSale3 = async (parent: Partial<Collaborators>, orderGratitude: Orders, valueUpdate: number) => {
