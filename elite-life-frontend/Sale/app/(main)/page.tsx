@@ -945,7 +945,7 @@ const Dashboard = () => {
                 }
 
                 }>
-                    <img src="/layout/images/img-banner.png" alt="adsIcon" />
+                    <img src="/layout/images/Test-banner-4.png" alt="adsIcon" />
                 </div>
             </div>
             <PurchaseDialogCombo
