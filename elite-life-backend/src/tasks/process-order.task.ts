@@ -243,7 +243,7 @@ export class ProcessOrder {
           where: { UserName: userName },
           select: ["ParentId"],
         });
-
+        collaboratorList.push(currentId);
         if (!parent?.ParentId) {
           // Nếu không tìm thấy ParentId thì dừng lặp
           break;
@@ -251,54 +251,79 @@ export class ProcessOrder {
 
         // Lưu ParentId vào danh sách
         parentList.push(parent.ParentId);
-        collaboratorList.push(currentId);
+
 
         // Cập nhật currentId thành ParentId để tìm cha tiếp theo
         currentId = parent.ParentId;
       }
-
+      // Xóa thằng đầu tiên
+      collaboratorList.shift();
       // Cập nhật giá trị tri ân cho tất cả các cha trong danh sách
       const totalAmount = 3450000 * 0.07;
-      const gratitudeAmount = totalAmount / parentList.length; // Chia đều số tiền tri ân
-      for (let level = 0; level < maxLevels; level++) {
-        // Cập nhật bảng Wallets
-        const walletUpdateResult = await queryRunner.manager
-          .createQueryBuilder()
-          .insert()
-          .into(Wallets)
-          .values({
-            CollaboratorId: order.CollaboratorId,
-            Available: gratitudeAmount,
-            WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
-            Total: gratitudeAmount,
-          })
-          .onConflict(
-            `("CollaboratorId", "WalletTypeEnums") DO UPDATE SET 
-        "Total" = "Wallets"."Total" + ${gratitudeAmount},
-        "Available" = "Wallets"."Available" + ${gratitudeAmount}`
-          )
-          .returning("*")
-          .execute();
+      const gratitudeAmount = totalAmount / parentList.length; // Ví dụ khoản tiền tri ân
+      for (const collaboratorId of collaboratorList) {
+        const orderGratitude = await queryRunner.manager.findOne(Orders, {
+          where: { CollaboratorId: collaboratorId },
+          relations: { Collaborator: true },
+        });
 
-        // Lấy WalletId từ kết quả cập nhật bảng Wallets
-        const walletGratitude = walletUpdateResult.raw[0];
+        if (orderGratitude) {
+          const valueUpdate = gratitudeAmount;
 
-        // Thêm dữ liệu vào bảng WalletDetails
-        await queryRunner.manager.save(
-          queryRunner.manager.create(WalletDetails, {
-            WalletId: walletGratitude.Id,
-            WalletType: walletGratitude.WalletTypeEnums,
-            Value: gratitudeAmount,
-            Note: `Tri ân từ ${order.Collaborator.UserName}`,
-          })
-        );
+          // Cập nhật giá trị tri ân vào Orders
+          await queryRunner.manager.save(
+            queryRunner.manager.create(Orders, {
+              Id: orderGratitude.Id,
+              CommissionCustomerGratitude: orderGratitude.CommissionCustomerGratitude + valueUpdate,
+            } as DeepPartial<Orders>)
+          );
+          // Lưu dữ liệu vào OrderDetails
+          await queryRunner.manager.save(
+            queryRunner.manager.create(OrderDetails, {
+              CollaboratorId: collaboratorId,
+              OrderId: order.Id,
+              WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
+              Value: valueUpdate,
+              Note: `Tri ân từ ${order.Collaborator.UserName}`,
+            } as DeepPartial<OrderDetails>)
+          );
+        }
+          await queryRunner.manager
+            .createQueryBuilder()
+            .update(Wallets)
+            .set({
+              Available: () => `"Available" + ${gratitudeAmount}`,
+            })
+            .where('"CollaboratorId" = :collaboratorId', { collaboratorId })
+            .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
+            .execute();
+
+          // Bổ sung vào WalletDetails
+          const walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
+            where: {
+              CollaboratorId: collaboratorId,
+              WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
+            },
+          });
+
+          if (walletUpdateResult) {
+            await queryRunner.manager.save(
+              queryRunner.manager.create(WalletDetails, {
+                WalletId: walletUpdateResult.Id,
+                WalletType: walletUpdateResult.WalletTypeEnums,
+                Value: gratitudeAmount,
+                Note: `Tri ân từ ${order.Collaborator.UserName}`,
+              })
+            );
+          }
+        }
+
+      } catch (error) {
+        this.logger.error(`calcCustomer`);
+        throw error;
       }
-    } catch (error) {
-      this.logger.error(`calcCustomer`);
-      throw error;
-    }
 
-  }
+    }
 
   private async calcSale(queryRunner: QueryRunner, order: Orders) {
     try {

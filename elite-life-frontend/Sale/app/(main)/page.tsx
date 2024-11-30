@@ -58,12 +58,12 @@ const Dashboard = () => {
     const message = useRef<Messages>(null);
 
     const WalletTypes: InputValue[] = [
-        {
-            code: "CustomerShare", name: WalletTypeEnums.CustomerShare,
-        },
-        {
-            code: "CustomerGratitude", name: WalletTypeEnums.CustomerGratitude
-        },
+        // {
+        //     code: "CustomerShare", name: WalletTypeEnums.CustomerShare,
+        // },
+        // {
+        //     code: "CustomerGratitude", name: WalletTypeEnums.CustomerGratitude
+        // },
         {
             code: "Sale1", name: WalletTypeEnums.Sale1
         },
@@ -544,7 +544,7 @@ const Dashboard = () => {
                         <p>Ngân hàng: {bankName}</p>
                         <p>Số tài khoản: {accountNumber}</p>
                         <p>CTK: {accountName}</p>
-                        <p>Nội dung ck: {info?.UserName}
+                        <p>Nội dung ck: Chuyển khoản tiền mua hàng {info?.UserName}
                             <CopyToClipboard text={`${info?.UserName}`} onCopy={
                                 () => toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã copy thành công', life: 3000 })
 
