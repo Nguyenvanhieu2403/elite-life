@@ -73,6 +73,7 @@ export class ProcessOrder {
 
           // chia tiền cho nvkd
           await this.calcSale(queryRunner, orderTemp);
+          var test = 1;
 
           // cập nhật cấp bậc cho user mua + parent
           await this.processSaleUpgrade(queryRunner, orderTemp);
@@ -888,184 +889,88 @@ export class ProcessOrder {
 
   private async processSaleUpgrade(queryRunner: QueryRunner, order: Orders) {
     try {
-
+      // Lấy thông tin cộng tác viên từ đơn hàng
       let collaborator = await queryRunner.manager.findOne(Collaborators, {
-        where: {
-          Id: order.CollaboratorId
-        }
+        where: { Id: order.CollaboratorId },
       });
-      // let childNum = await queryRunner.manager.count(Collaborators, {
-      //   where: {
-      //     ParentId: collaborator.Id,
-      //     Rank: RankEnums.V
-      //   }
-      // });
-
-      // await queryRunner.manager.save(
-      //   queryRunner.manager.create(Collaborators, {
-      //     Id: order.CollaboratorId,
-      //     Rank: childNum >= 3 ? RankEnums.V1 : RankEnums.V
-      //   } as DeepPartial<Collaborators>),
-      // );
-
-      let parent = collaborator
-      let parentIds: number[] = []
-      while (true) {
-        if (!parent) break;
-        if (parentIds.some(s => s == parent.Id)) break;
+  
+      let parent = collaborator;
+      let parentIds: number[] = []; // Danh sách ID cha để tránh lặp
+      const rankConditions = [
+        { rank: RankEnums.V5, minRank: [RankEnums.V4], totalAmount: 69_000_000 },
+        { rank: RankEnums.V4, minRank: [RankEnums.V4, RankEnums.V3], totalAmount: 69_000_000 },
+        { rank: RankEnums.V3, minRank: [RankEnums.V4, RankEnums.V3, RankEnums.V2], totalAmount: 69_000_000 },
+        { rank: RankEnums.V2, minRank: [RankEnums.V4, RankEnums.V3, RankEnums.V2, RankEnums.V1], totalAmount: 69_000_000 },
+        { rank: RankEnums.V1, minRank: [RankEnums.V4, RankEnums.V3, RankEnums.V2, RankEnums.V1, RankEnums.V], totalAmount: 69_000_000 },
+      ];
+  
+      while (parent) {
+        if (parentIds.includes(parent.Id)) break; // Ngăn lặp vòng
         parentIds.push(parent.Id);
-        let rankCur: RankEnums = parent.Rank;
-        let rankNext: RankEnums = parent.Rank;
-        let coefficient: number = 0;
-
-        if (rankCur != RankEnums.V5) {
-          let collaboratorIds = await this.getTreeByCollaboratorId(queryRunner, parent.Id);
-          const totalAmount = await this.orderRepository.sum('Payed', {
-            CollaboratorId: In(collaboratorIds),
-            CompletedDate: LessThanOrEqual(order.CompletedDate)
-          });
-
-          let childs = await queryRunner.manager.find(Collaborators, {
-            where: {
-              ParentId: parent.Id
-              // Id: In(collaboratorIds.filter(s => s != parent.Id)),
-            },
-            select: {
-              Id: true,
-              UserName: true,
-              Rank: true
-            }
-          });
-
-          let childRanks: Partial<Collaborators>[] = []
-          for (const child of childs) {
-            let collaboratorChildIds = await this.getTreeByCollaboratorId(queryRunner, child.Id);
-
-            let childTemps = await queryRunner.manager.find(Collaborators, {
-              where: {
-                Id: In(collaboratorChildIds),
-              },
-              select: {
-                Id: true,
-                Rank: true
-              }
-            });
-            if (childTemps.filter(s => s.Rank == RankEnums.V5).length >= 1) {
-              childRanks.push({
-                Id: child.Id,
-                UserName: child.UserName,
-                Rank: RankEnums.V5
-              });
-            }
-            else if (childTemps.filter(s => s.Rank == RankEnums.V4).length >= 1) {
-              childRanks.push({
-                Id: child.Id,
-                UserName: child.UserName,
-                Rank: RankEnums.V4
-              });
-            }
-            else if (childTemps.filter(s => s.Rank == RankEnums.V3).length >= 1) {
-              childRanks.push({
-                Id: child.Id,
-                UserName: child.UserName,
-                Rank: RankEnums.V3
-              });
-            }
-            else if (childTemps.filter(s => s.Rank == RankEnums.V2).length >= 1) {
-              childRanks.push({
-                Id: child.Id,
-                UserName: child.UserName,
-                Rank: RankEnums.V2
-              });
-            }
-            else if (childTemps.filter(s => s.Rank == RankEnums.V1).length >= 1) {
-              childRanks.push({
-                Id: child.Id,
-                UserName: child.UserName,
-                Rank: RankEnums.V1
-              });
-            }
-            else if (childTemps.filter(s => s.Rank == RankEnums.V).length >= 1) {
-              childRanks.push({
-                Id: child.Id,
-                UserName: child.UserName,
-                Rank: RankEnums.V
-              });
-            } else {
-              childRanks.push({
-                Id: child.Id,
-                UserName: child.UserName,
-                Rank: RankEnums.None
-              });
-            }
-          };
-          // rankNext = RankEnums.V;
-          // if (parent.UserName == 'EL001') debugger;
-          if (childRanks.filter(s => s.Rank == RankEnums.V4).length >= 3 && totalAmount >= 69_000_000) {
-            rankNext = RankEnums.V5
-            coefficient = 10
-          } else if (childRanks.filter(s => [RankEnums.V4, RankEnums.V3].some(s1 => s1 == s.Rank)).length >= 3 && totalAmount >= 69_000_000) {
-            rankNext = RankEnums.V4
-            coefficient = 10
-          } else if (childRanks.filter(s => [RankEnums.V4, RankEnums.V3, RankEnums.V2].some(s1 => s1 == s.Rank)).length >= 3 && totalAmount >= 69_000_000) {
-            rankNext = RankEnums.V3
-            coefficient = 10
-          } else if (childRanks.filter(s => [RankEnums.V4, RankEnums.V3, RankEnums.V2, RankEnums.V1].some(s1 => s1 == s.Rank)).length >= 3 && totalAmount >= 69_000_000) {
-            rankNext = RankEnums.V2
-            coefficient = 10
-          } else if (childRanks.filter(s => [RankEnums.V4, RankEnums.V3, RankEnums.V2, RankEnums.V1, RankEnums.V].some(s1 => s1 == s.Rank)).length >= 3 && totalAmount >= 69_000_000) {
-            rankNext = RankEnums.V1
-            coefficient = 10
-          } else if (childRanks.length >= 3) {
-            coefficient = 3
+  
+        // Lấy danh sách các con của cộng tác viên
+        const childs = await queryRunner.manager.find(Collaborators, {
+          where: { ParentId: parent.Id },
+          select: { Id: true, UserName: true, Rank: true },
+        });
+  
+        // Kiểm tra rank hiện tại của cộng tác viên
+        let rankCur = parent.Rank;
+        let rankNext = rankCur;
+  
+        // Tính tổng thu nhập của cộng tác viên và con cái
+        const collaboratorIds = await this.getTreeByCollaboratorId(queryRunner, parent.Id);
+        const totalAmount = await this.orderRepository.sum('Payed', {
+          CollaboratorId: In(collaboratorIds),
+          CompletedDate: LessThanOrEqual(order.CompletedDate),
+        });
+  
+        // Kiểm tra rank mới theo điều kiện
+        for (const condition of rankConditions) {
+          const eligibleChildren = childs.filter((child) =>
+            condition.minRank.includes(child.Rank)
+          );
+          if (eligibleChildren.length >= 3 && totalAmount >= condition.totalAmount) {
+            rankNext = condition.rank;
+            break;
           }
         }
-
-        if (rankCur != rankNext || coefficient > 0) {
-
-          if (rankCur != rankNext) {
-            await queryRunner.manager.save(Collaborators,
-              queryRunner.manager.create(Collaborators,
-                {
-                  Id: parent.Id,
-                  Rank: rankNext
-                } as DeepPartial<Collaborators>
-              )
-            )
-          }
-
-          let orderCur = await queryRunner.manager.findOne(Orders, {
-            where: {
-              CollaboratorId: parent.Id
-            },
-            order: {
-              CreatedAt: "desc"
-            }
-          })
-          if (orderCur) {
-            await queryRunner.manager.save(
-              queryRunner.manager.create(Orders, {
-                Id: orderCur.Id,
-                CommissionSaleMax: order.Value * coefficient
-              } as Orders),
-            );
-          }
-
+  
+        // Nếu rank thay đổi, tiến hành cập nhật
+        if (rankCur !== rankNext) {
+          await queryRunner.manager.save(
+            queryRunner.manager.create(Collaborators, {
+              Id: parent.Id,
+              Rank: rankNext,
+            } as DeepPartial<Collaborators>)
+          );
         }
-
-        if (parent.ParentId == undefined) parent = null
-        else
-          parent = await queryRunner.manager.findOne(Collaborators, {
-            where: {
-              Id: parent.ParentId
-            }
-          });
+  
+        // Cập nhật hoa hồng nếu cần
+        const orderCur = await queryRunner.manager.findOne(Orders, {
+          where: { CollaboratorId: parent.Id },
+          order: { CreatedAt: 'desc' },
+        });
+        if (orderCur && rankCur !== rankNext) {
+          await queryRunner.manager.save(
+            queryRunner.manager.create(Orders, {
+              Id: orderCur.Id,
+              CommissionSaleMax: order.Value * 10, // Hệ số hoa hồng cố định là 10
+            } as Orders)
+          );
+        }
+  
+        // Tiếp tục với cha của cộng tác viên hiện tại
+        parent = await queryRunner.manager.findOne(Collaborators, {
+          where: { Id: parent.ParentId },
+        });
       }
     } catch (error) {
-      this.logger.error(`processSaleUpgrade`)
+      this.logger.error(`processSaleUpgrade error: ${error.message}`);
       throw error;
     }
   }
+  
 
   async payBack(queryRunner: QueryRunner, payOrderDto: PayOrderDto, collaborator: Collaborators) {
     try {
