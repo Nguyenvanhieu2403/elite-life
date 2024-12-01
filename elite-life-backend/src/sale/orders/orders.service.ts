@@ -153,7 +153,7 @@ export class OrdersService {
       let product = await queryRunner.manager.findOne(Products, { where: { Id: payOrderDto.ProductId } })
       let orderResult: InsertResult | UpdateResult
 
-      if (product.Price < payOrderDto.Value) {
+      if (product.Price < payOrderDto.Value || order?.Pending < payOrderDto.Value) {
         return {
           status: false,
           message: "Vui lòng nhập đúng số tiền phải thanh toán còn lại"
