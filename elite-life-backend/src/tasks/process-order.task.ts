@@ -229,6 +229,33 @@ export class ProcessOrder {
       }
 
       // nhị phân
+      let binaryTreeNum = await queryRunner.manager.count(BinaryTrees);
+      let binaryTreeParentNum = Math.floor((binaryTreeNum + 1) / 2);
+
+      const parents = await queryRunner.manager.find(BinaryTrees, {
+        skip: binaryTreeParentNum == 0 ? 0 : binaryTreeParentNum - 1,
+        take: 1,
+        relations: {
+          Collaborator: true,
+        },
+        order: {
+          Id: 'ASC',
+        },
+      });
+
+      let parent = parents.length > 0 ? parents[0] : null;
+
+      // Lưu thông tin vào bảng BinaryTrees
+      await queryRunner.manager.save(
+        queryRunner.manager.create(BinaryTrees, {
+          CollaboratorId: order.CollaboratorId,
+          OrderId: order.Id,
+          ParentId: parent ? parent.Id : null,
+        } as DeepPartial<BinaryTrees>)
+      );
+
+
+      // tri ân
       let currentId = order.CollaboratorId;
       const maxLevels = 21; // Tối đa 21 cha
       const parentList: number[] = []; // Danh sách ID cha
@@ -288,42 +315,56 @@ export class ProcessOrder {
             } as DeepPartial<OrderDetails>)
           );
         }
+
+        // Kiểm tra ví CustomerGratitude có tồn tại hay chưa
+        let walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
+          where: {
+            CollaboratorId: collaboratorId,
+            WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
+          },
+        });
+
+        if (!walletUpdateResult) {
+          // Nếu không tồn tại, thực hiện INSERT
+          walletUpdateResult = await queryRunner.manager.save(
+            queryRunner.manager.create(Wallets, {
+              CollaboratorId: collaboratorId,
+              WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
+              Available: gratitudeAmount,
+              Total: gratitudeAmount,
+            } as DeepPartial<Wallets>)
+          );
+        } else {
+          // Nếu tồn tại, thực hiện UPDATE
           await queryRunner.manager
             .createQueryBuilder()
             .update(Wallets)
             .set({
               Available: () => `"Available" + ${gratitudeAmount}`,
+              Total: () => `"Total" + ${gratitudeAmount}`,
             })
             .where('"CollaboratorId" = :collaboratorId', { collaboratorId })
             .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
             .execute();
-
-          // Bổ sung vào WalletDetails
-          const walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
-            where: {
-              CollaboratorId: collaboratorId,
-              WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
-            },
-          });
-
-          if (walletUpdateResult) {
-            await queryRunner.manager.save(
-              queryRunner.manager.create(WalletDetails, {
-                WalletId: walletUpdateResult.Id,
-                WalletType: walletUpdateResult.WalletTypeEnums,
-                Value: gratitudeAmount,
-                Note: `Tri ân từ ${order.Collaborator.UserName}`,
-              })
-            );
-          }
+        }
+        // Bổ sung vào WalletDetails
+        if (walletUpdateResult) {
+          await queryRunner.manager.save(
+            queryRunner.manager.create(WalletDetails, {
+              WalletId: walletUpdateResult.Id,
+              WalletType: walletUpdateResult.WalletTypeEnums,
+              Value: gratitudeAmount,
+              Note: `Tri ân từ ${order.Collaborator.UserName}`,
+            })
+          );
         }
 
-      } catch (error) {
-        this.logger.error(`calcCustomer`);
-        throw error;
       }
-
+    } catch (error) {
+      this.logger.error(`calcCustomer`);
+      throw error;
     }
+  }
 
   private async calcSale(queryRunner: QueryRunner, order: Orders) {
     try {

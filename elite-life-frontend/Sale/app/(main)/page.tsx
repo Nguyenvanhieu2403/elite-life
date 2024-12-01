@@ -58,12 +58,12 @@ const Dashboard = () => {
     const message = useRef<Messages>(null);
 
     const WalletTypes: InputValue[] = [
-        // {
-        //     code: "CustomerShare", name: WalletTypeEnums.CustomerShare,
-        // },
-        // {
-        //     code: "CustomerGratitude", name: WalletTypeEnums.CustomerGratitude
-        // },
+        {
+            code: "CustomerShare", name: WalletTypeEnums.CustomerShare,
+        },
+        {
+            code: "CustomerGratitude", name: WalletTypeEnums.CustomerGratitude
+        },
         {
             code: "Sale1", name: WalletTypeEnums.Sale1
         },
