@@ -545,7 +545,7 @@ const Dashboard = () => {
                         <p>Số tài khoản: {accountNumber}</p>
                         <p>CTK: {accountName}</p>
                         <p>Nội dung ck: Chuyển khoản tiền mua hàng {info?.UserName}
-                            <CopyToClipboard text={`${info?.UserName}`} onCopy={
+                            <CopyToClipboard text={`Chuyển khoản tiền mua hàng ${info?.UserName}`} onCopy={
                                 () => toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã copy thành công', life: 3000 })
 
                             } >
@@ -945,7 +945,7 @@ const Dashboard = () => {
                 }
 
                 }>
-                    <img src="/layout/images/Test-banner-4.png" alt="adsIcon" />
+                    <img src="/layout/images/img-banner.png" alt="adsIcon" />
                 </div>
             </div>
             <PurchaseDialogCombo

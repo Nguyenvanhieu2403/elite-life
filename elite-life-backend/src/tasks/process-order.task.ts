@@ -68,12 +68,57 @@ export class ProcessOrder {
             }
           })
 
+          // Nhận 49% về công ty
+          let valueCompany = orderTemp.Value * 0.49;
+          const IdCompany = 7893;
+          let walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
+            where: {
+              CollaboratorId: IdCompany,
+              WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
+            },
+          });
+
+          if (!walletUpdateResult) {
+            // Nếu không tồn tại, thực hiện INSERT
+            walletUpdateResult = await queryRunner.manager.save(
+              queryRunner.manager.create(Wallets, {
+                CollaboratorId: IdCompany,
+                WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
+                Available: valueCompany,
+                Total: valueCompany,
+              } as DeepPartial<Wallets>)
+            );
+          } else {
+            // Nếu tồn tại, thực hiện UPDATE
+            await queryRunner.manager
+            .createQueryBuilder()
+            .update(Wallets)
+            .set({
+              Available: () => `"Available" + ${valueCompany}`,
+              Total: () => `"Total" + ${valueCompany}`,
+            })
+            .where('"CollaboratorId" = :collaboratorId', { collaboratorId: IdCompany })  // Ensure the parameter name matches
+            .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
+            .execute();
+
+          }
+
+          if (walletUpdateResult) {
+            await queryRunner.manager.save(
+              queryRunner.manager.create(WalletDetails, {
+                WalletId: walletUpdateResult.Id,
+                WalletType: walletUpdateResult.WalletTypeEnums,
+                Value: valueCompany,
+                Note: `Tri ân 49% từ ${orderTemp.Collaborator.UserName}`,
+              })
+            );
+          }
+
           // chia tiền cho KH
           await this.calcCustomer(queryRunner, orderTemp);
 
           // chia tiền cho nvkd
           await this.calcSale(queryRunner, orderTemp);
-          var test = 1;
 
           // cập nhật cấp bậc cho user mua + parent
           await this.processSaleUpgrade(queryRunner, orderTemp);
@@ -287,8 +332,53 @@ export class ProcessOrder {
       // Xóa thằng đầu tiên
       collaboratorList.shift();
       // Cập nhật giá trị tri ân cho tất cả các cha trong danh sách
-      const totalAmount = 3450000 * 0.07;
-      const gratitudeAmount = totalAmount / parentList.length; // Ví dụ khoản tiền tri ân
+      if(parentList.length < 21) {
+        const totalAmount = 3450000 * 0.07;
+        const paymentAmount = 11500 * parentList.length;
+        const changeAmount = totalAmount - paymentAmount;
+        const IdCompany = 7892;
+        let walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
+          where: {
+            CollaboratorId: IdCompany,
+            WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
+          },
+        });
+
+        if (!walletUpdateResult) {
+          // Nếu không tồn tại, thực hiện INSERT
+          walletUpdateResult = await queryRunner.manager.save(
+            queryRunner.manager.create(Wallets, {
+              CollaboratorId: IdCompany,
+              WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
+              Available: changeAmount,
+              Total: changeAmount,
+            } as DeepPartial<Wallets>)
+          );
+        } else {
+          // Nếu tồn tại, thực hiện UPDATE
+          await queryRunner.manager
+            .createQueryBuilder()
+            .update(Wallets)
+            .set({
+              Available: () => `"Available" + ${changeAmount}`,
+              Total: () => `"Total" + ${changeAmount}`,
+            })
+            .where('"CollaboratorId" = :collaboratorId', { IdCompany })
+            .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
+            .execute();
+        }
+        if (walletUpdateResult) {
+          await queryRunner.manager.save(
+            queryRunner.manager.create(WalletDetails, {
+              WalletId: walletUpdateResult.Id,
+              WalletType: walletUpdateResult.WalletTypeEnums,
+              Value: changeAmount,
+              Note: `Tri ân tiền thừa 7% sau khi đã chia ${parentList.length} tầng từ ${order.Collaborator.UserName}`,
+            })
+          );
+        }
+      }
+      const gratitudeAmount = 11500;// totalAmount / parentList.length; // Ví dụ khoản tiền tri ân
       for (const collaboratorId of collaboratorList) {
         const orderGratitude = await queryRunner.manager.findOne(Orders, {
           where: { CollaboratorId: collaboratorId },
