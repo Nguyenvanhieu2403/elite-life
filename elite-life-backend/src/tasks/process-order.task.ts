@@ -889,88 +889,132 @@ export class ProcessOrder {
 
   private async processSaleUpgrade(queryRunner: QueryRunner, order: Orders) {
     try {
+      // B1: Khởi tạo danh sách ListParent và ListRankUpdate
+      const ListParent: Collaborators[] = [];
+      const ListRankUpdate: { collaboratorId: number; rank: RankEnums }[] = [];
+
       // Lấy thông tin cộng tác viên từ đơn hàng
       let collaborator = await queryRunner.manager.findOne(Collaborators, {
         where: { Id: order.CollaboratorId },
       });
-  
-      let parent = collaborator;
-      let parentIds: number[] = []; // Danh sách ID cha để tránh lặp
-      const rankConditions = [
-        { rank: RankEnums.V5, minRank: [RankEnums.V4], totalAmount: 69_000_000 },
-        { rank: RankEnums.V4, minRank: [RankEnums.V4, RankEnums.V3], totalAmount: 69_000_000 },
-        { rank: RankEnums.V3, minRank: [RankEnums.V4, RankEnums.V3, RankEnums.V2], totalAmount: 69_000_000 },
-        { rank: RankEnums.V2, minRank: [RankEnums.V4, RankEnums.V3, RankEnums.V2, RankEnums.V1], totalAmount: 69_000_000 },
-        { rank: RankEnums.V1, minRank: [RankEnums.V4, RankEnums.V3, RankEnums.V2, RankEnums.V1, RankEnums.V], totalAmount: 69_000_000 },
-      ];
-  
+      if (!collaborator) return;
+
+      ListRankUpdate.push({ collaboratorId: collaborator.Id, rank: collaborator.Rank });
+
+      // B3: Lấy danh sách cha và đẩy vào ListParent
+      let parent = await queryRunner.manager.findOne(Collaborators, {
+        where: { Id: collaborator.ParentId },
+      });
+
       while (parent) {
-        if (parentIds.includes(parent.Id)) break; // Ngăn lặp vòng
-        parentIds.push(parent.Id);
-  
-        // Lấy danh sách các con của cộng tác viên
-        const childs = await queryRunner.manager.find(Collaborators, {
-          where: { ParentId: parent.Id },
-          select: { Id: true, UserName: true, Rank: true },
-        });
-  
-        // Kiểm tra rank hiện tại của cộng tác viên
-        let rankCur = parent.Rank;
-        let rankNext = rankCur;
-  
-        // Tính tổng thu nhập của cộng tác viên và con cái
-        const collaboratorIds = await this.getTreeByCollaboratorId(queryRunner, parent.Id);
-        const totalAmount = await this.orderRepository.sum('Payed', {
-          CollaboratorId: In(collaboratorIds),
-          CompletedDate: LessThanOrEqual(order.CompletedDate),
-        });
-  
-        // Kiểm tra rank mới theo điều kiện
-        for (const condition of rankConditions) {
-          const eligibleChildren = childs.filter((child) =>
-            condition.minRank.includes(child.Rank)
-          );
-          if (eligibleChildren.length >= 3 && totalAmount >= condition.totalAmount) {
-            rankNext = condition.rank;
-            break;
-          }
-        }
-  
-        // Nếu rank thay đổi, tiến hành cập nhật
-        if (rankCur !== rankNext) {
-          await queryRunner.manager.save(
-            queryRunner.manager.create(Collaborators, {
-              Id: parent.Id,
-              Rank: rankNext,
-            } as DeepPartial<Collaborators>)
-          );
-        }
-  
-        // Cập nhật hoa hồng nếu cần
-        const orderCur = await queryRunner.manager.findOne(Orders, {
-          where: { CollaboratorId: parent.Id },
-          order: { CreatedAt: 'desc' },
-        });
-        if (orderCur && rankCur !== rankNext) {
-          await queryRunner.manager.save(
-            queryRunner.manager.create(Orders, {
-              Id: orderCur.Id,
-              CommissionSaleMax: order.Value * 10, // Hệ số hoa hồng cố định là 10
-            } as Orders)
-          );
-        }
-  
-        // Tiếp tục với cha của cộng tác viên hiện tại
+        ListParent.push(parent);
         parent = await queryRunner.manager.findOne(Collaborators, {
           where: { Id: parent.ParentId },
         });
+      }
+
+      for (const parent of ListParent) {
+        let rankUpdated = false;
+        // Lấy tất cả con cháu chắt của thằng cha hiện tại
+        const descendantRanks = await this.getDescendantRanks(queryRunner, parent.Id, ListRankUpdate);
+
+        // Kiểm tra điều kiện nâng rank
+        for (const condition of this.getRankConditions()) {
+          const eligibleRanks = descendantRanks.filter((rank) => condition.minRank.includes(rank));
+          if (eligibleRanks.length >= 3) {
+            // Update rank và thêm vào ListRankUpdate
+            parent.Rank = condition.rank;
+            await queryRunner.manager.save(parent);
+            ListRankUpdate.push({ collaboratorId: parent.Id, rank: parent.Rank });
+            rankUpdated = true;
+            break;
+          }
+        }
+
+        if (!rankUpdated) {
+          await this.processDescendantsForUpgrade(
+            queryRunner,
+            parent.Id,
+            ListRankUpdate,
+            parent.Rank
+          );
+        }
+
       }
     } catch (error) {
       this.logger.error(`processSaleUpgrade error: ${error.message}`);
       throw error;
     }
   }
-  
+
+  private async getDescendantRanks(
+    queryRunner: QueryRunner,
+    parentId: number,
+    ListRankUpdate: { collaboratorId: number; rank: RankEnums }[]
+  ): Promise<RankEnums[]> {
+    const descendants: Collaborators[] = await queryRunner.manager.find(Collaborators, {
+      where: { ParentId: parentId },
+      select: { Id: true, Rank: true },
+    });
+
+    const descendantRanks = descendants.map((descendant) => descendant.Rank);
+
+    // Thêm các rank từ ListRankUpdate
+    ListRankUpdate.forEach((update) => {
+      if (descendants.some((descendant) => descendant.Id === update.collaboratorId)) {
+        descendantRanks.push(update.rank);
+      }
+    });
+
+    return descendantRanks;
+  }
+  private async processDescendantsForUpgrade(
+    queryRunner: QueryRunner,
+    parentId: number,
+    ListRankUpdate: { collaboratorId: number; rank: RankEnums }[],
+    parentRank: RankEnums
+  ): Promise<void> {
+    const descendants = await queryRunner.manager.find(Collaborators, {
+      where: { ParentId: parentId },
+      select: { Id: true, Rank: true },
+    });
+
+    for (const descendant of descendants) {
+      // Tính tổng chi tiêu của các descendant
+      const descendantIds = await this.getTreeByCollaboratorId(queryRunner, descendant.Id);
+      const totalAmount = await this.orderRepository.sum('Payed', {
+        CollaboratorId: In(descendantIds),
+      });
+
+      // Kiểm tra điều kiện nâng hạng
+      if (totalAmount >= 69_000_000) {
+        const descendantRanks = await this.getDescendantRanks(queryRunner, descendant.Id, ListRankUpdate);
+
+        for (const condition of this.getRankConditions()) {
+          const eligibleRanks = descendantRanks.filter((rank) => condition.minRank.includes(rank));
+          if (eligibleRanks.length >= 3) {
+            // Cập nhật rank của descendant nếu đủ điều kiện
+            descendant.Rank = condition.rank;
+            await queryRunner.manager.save(descendant);
+            ListRankUpdate.push({ collaboratorId: descendant.Id, rank: descendant.Rank });
+          }
+        }
+      }
+
+      // Tiếp tục duyệt con cháu của descendant
+      await this.processDescendantsForUpgrade(queryRunner, descendant.Id, ListRankUpdate, parentRank);
+    }
+  }
+
+  private getRankConditions(): { rank: RankEnums; minRank: RankEnums[] }[] {
+    return [
+      { rank: RankEnums.V5, minRank: [RankEnums.V4] },
+      { rank: RankEnums.V4, minRank: [RankEnums.V4, RankEnums.V3] },
+      { rank: RankEnums.V3, minRank: [RankEnums.V4, RankEnums.V3, RankEnums.V2] },
+      { rank: RankEnums.V2, minRank: [RankEnums.V4, RankEnums.V3, RankEnums.V2, RankEnums.V1] },
+      { rank: RankEnums.V1, minRank: [RankEnums.V4, RankEnums.V3, RankEnums.V2, RankEnums.V1, RankEnums.V] },
+    ];
+  }
 
   async payBack(queryRunner: QueryRunner, payOrderDto: PayOrderDto, collaborator: Collaborators) {
     try {
