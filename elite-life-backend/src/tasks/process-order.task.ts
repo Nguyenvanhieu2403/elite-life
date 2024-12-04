@@ -959,7 +959,7 @@ export class ProcessOrder {
 
     const descendantRanks = descendants.map((descendant) => descendant.Rank);
 
-    // Thêm các rank từ ListRankUpdate
+    // Thêm các rank từ ListRankUpdate10
     ListRankUpdate.forEach((update) => {
       if (descendants.some((descendant) => descendant.Id === update.collaboratorId)) {
         descendantRanks.push(update.rank);
