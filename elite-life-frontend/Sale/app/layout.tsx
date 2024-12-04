@@ -16,8 +16,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
     return (
         <html lang="en" suppressHydrationWarning>
             <head>
-                <meta name="google-adsense-account" content="ca-pub-2186867553216325">
-                </meta>
                 <link
                     id="theme-css"
                     href={`/themes/lara-light-indigo/theme.css`}
@@ -40,15 +38,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
                     `}
                 </Script>
                 {/* End Google Tag Manager */}
-
-                {/* Google AdSense */}
-                <Script
-                    async
-                    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2186867553216325"
-                    crossOrigin="anonymous"
-                    strategy="afterInteractive"
-                />
-                {/* End Google AdSense */}
                 <PrimeReactProvider>
                     <LayoutProvider>{children}</LayoutProvider>
                 </PrimeReactProvider>
