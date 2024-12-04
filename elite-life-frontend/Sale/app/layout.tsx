@@ -25,20 +25,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
                 />
             </head>
             <body>
-                {/* Google Tag Manager */}
-                <Script
-                    async
-                    src="https://www.googletagmanager.com/gtag/js?id=G-NB2CVK98W2"
-                ></Script>
-                <Script id="google-analytics">
-                    {`
-                        window.dataLayer = window.dataLayer || [];
-                        function gtag(){dataLayer.push(arguments);}
-                        gtag('js', new Date());
-                        gtag('config', 'G-NB2CVK98W2');
-                    `}
-                </Script>
-                {/* End Google Tag Manager */}
 
                 {/* Google Tag Manager */}
                 <Script
