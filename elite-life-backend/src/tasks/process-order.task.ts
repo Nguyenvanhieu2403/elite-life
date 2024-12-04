@@ -59,6 +59,7 @@ export class ProcessOrder {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
+        await queryRunner.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
         try {
           let orderTemp = await queryRunner.manager.findOne(Orders, {
             where: { Id: order.Id },
@@ -70,7 +71,7 @@ export class ProcessOrder {
 
           // Nhận 49% về công ty
           let valueCompany = orderTemp.Value * 0.49;
-          const IdCompany = 7893;
+          const IdCompany = 8082;
           let walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
             where: {
               CollaboratorId: IdCompany,
@@ -121,7 +122,8 @@ export class ProcessOrder {
           await this.calcSale(queryRunner, orderTemp);
 
           // cập nhật cấp bậc cho user mua + parent
-          await this.processSaleUpgrade(queryRunner, orderTemp);
+          //await this.processSaleUpgrade(queryRunner, orderTemp);
+          
 
           // cập nhật trạng thái
           await queryRunner.manager.save(
@@ -336,7 +338,7 @@ export class ProcessOrder {
         const totalAmount = 3450000 * 0.07;
         const paymentAmount = 11500 * parentList.length;
         const changeAmount = totalAmount - paymentAmount;
-        const IdCompany = 7892;
+        const IdCompany = 8080;
         let walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
           where: {
             CollaboratorId: IdCompany,
@@ -363,7 +365,7 @@ export class ProcessOrder {
               Available: () => `"Available" + ${changeAmount}`,
               Total: () => `"Total" + ${changeAmount}`,
             })
-            .where('"CollaboratorId" = :collaboratorId', { IdCompany })
+            .where('"CollaboratorId" = :collaboratorId', { collaboratorId: IdCompany })  // Ensure the parameter name matches
             .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
             .execute();
         }
