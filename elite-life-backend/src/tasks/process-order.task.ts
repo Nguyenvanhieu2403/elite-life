@@ -70,7 +70,7 @@ export class ProcessOrder {
 
           // Nhận 49% về công ty
           let valueCompany = orderTemp.Value * 0.49;
-          const IdCompany = 7893;
+          const IdCompany = 114;
           let walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
             where: {
               CollaboratorId: IdCompany,
@@ -97,7 +97,7 @@ export class ProcessOrder {
               Available: () => `"Available" + ${valueCompany}`,
               Total: () => `"Total" + ${valueCompany}`,
             })
-            .where('"CollaboratorId" = :collaboratorId', { collaboratorId: IdCompany })  // Ensure the parameter name matches
+            .where('"CollaboratorId" = :collaboratorId', { collaboratorId: IdCompany })  
             .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
             .execute();
 
@@ -119,9 +119,10 @@ export class ProcessOrder {
 
           // chia tiền cho nvkd
           await this.calcSale(queryRunner, orderTemp);
-
+          var test1 = '1';
           // cập nhật cấp bậc cho user mua + parent
           await this.processSaleUpgrade(queryRunner, orderTemp);
+          var test = '1';
 
           // cập nhật trạng thái
           await queryRunner.manager.save(
@@ -336,7 +337,7 @@ export class ProcessOrder {
         const totalAmount = 3450000 * 0.07;
         const paymentAmount = 11500 * parentList.length;
         const changeAmount = totalAmount - paymentAmount;
-        const IdCompany = 7892;
+        const IdCompany = 114;
         let walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
           where: {
             CollaboratorId: IdCompany,
@@ -363,7 +364,7 @@ export class ProcessOrder {
               Available: () => `"Available" + ${changeAmount}`,
               Total: () => `"Total" + ${changeAmount}`,
             })
-            .where('"CollaboratorId" = :collaboratorId', { IdCompany })
+            .where('"CollaboratorId" = :collaboratorId', { collaboratorId: IdCompany })  
             .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
             .execute();
         }
@@ -434,7 +435,7 @@ export class ProcessOrder {
               Available: () => `"Available" + ${gratitudeAmount}`,
               Total: () => `"Total" + ${gratitudeAmount}`,
             })
-            .where('"CollaboratorId" = :collaboratorId', { collaboratorId })
+            .where('"CollaboratorId" = :collaboratorId', { collaboratorId: collaboratorId })  
             .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
             .execute();
         }
@@ -979,8 +980,10 @@ export class ProcessOrder {
 
   private async processSaleUpgrade(queryRunner: QueryRunner, order: Orders) {
     try {
+      let currentId = order.CollaboratorId;
       // B1: Khởi tạo danh sách ListParent và ListRankUpdate
       const ListParent: Collaborators[] = [];
+      // const parentListId: number[] = [];
       const ListRankUpdate: { collaboratorId: number; rank: RankEnums }[] = [];
 
       // Lấy thông tin cộng tác viên từ đơn hàng
@@ -991,17 +994,43 @@ export class ProcessOrder {
 
       ListRankUpdate.push({ collaboratorId: collaborator.Id, rank: collaborator.Rank });
 
-      // B3: Lấy danh sách cha và đẩy vào ListParent
-      let parent = await queryRunner.manager.findOne(Collaborators, {
-        where: { Id: collaborator.ParentId },
-      });
 
-      while (parent) {
-        ListParent.push(parent);
-        parent = await queryRunner.manager.findOne(Collaborators, {
-          where: { Id: parent.ParentId },
+     
+
+      // Truy vấn ParentId
+      while (true) {
+        // Tạo UserName bằng tiền tố EL
+        const userName = `EL${currentId.toString().padStart(3, '0')}`;
+      
+        // Truy vấn ParentId
+        const parent = await queryRunner.manager.findOne(Collaborators, {
+          where: { UserName: userName },
         });
+      
+        if (!parent?.ParentId) {
+          // Nếu không tìm thấy ParentId thì dừng lặp
+          break;
+        }
+      
+        // Lưu ParentId vào danh sách
+        ListParent.push(parent);
+      
+        // Cập nhật currentId thành ParentId để tìm cha tiếp theo
+        currentId = parent.ParentId;
       }
+
+      
+      // B3: Lấy danh sách cha và đẩy vào ListParent
+      // let parent = await queryRunner.manager.findOne(Collaborators, {
+      //   where: { Id: collaborator.ParentId },
+      // });
+
+      // while (parent) {
+      //   ListParent.push(parent);
+      //   parent = await queryRunner.manager.findOne(Collaborators, {
+      //     where: { Id: parent.ParentId },
+      //   });
+      // }
 
       for (const parent of ListParent) {
         let rankUpdated = false;
