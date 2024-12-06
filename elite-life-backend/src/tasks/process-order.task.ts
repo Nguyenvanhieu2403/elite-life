@@ -889,7 +889,9 @@ export class ProcessOrder {
             }
           }
         )
-        await funcV1New(v1, orderGratitude, RankEnums.V1, v1s.length)
+        if(orderGratitude){
+          await funcV1New(v1, orderGratitude, RankEnums.V1, v1s.length)
+        }
       }
 
       // rank v2
@@ -909,7 +911,9 @@ export class ProcessOrder {
             }
           }
         )
-        await funcV1New(v1, orderGratitude, RankEnums.V2, v1s.length)
+        if(orderGratitude){
+          await funcV1New(v1, orderGratitude, RankEnums.V1, v1s.length)
+        }
       }
 
 
@@ -930,7 +934,9 @@ export class ProcessOrder {
             }
           }
         )
-        await funcV1New(v1, orderGratitude, RankEnums.V3, v1s.length)
+        if(orderGratitude){
+          await funcV1New(v1, orderGratitude, RankEnums.V1, v1s.length)
+        }
       }
 
       // rank v4
@@ -950,7 +956,9 @@ export class ProcessOrder {
             }
           }
         )
-        await funcV1New(v1, orderGratitude, RankEnums.V4, v1s.length)
+        if(orderGratitude){
+          await funcV1New(v1, orderGratitude, RankEnums.V1, v1s.length)
+        }
       }
 
       // rank v5
@@ -970,7 +978,9 @@ export class ProcessOrder {
             }
           }
         )
-        await funcV1New(v1, orderGratitude, RankEnums.V5, v1s.length)
+        if(orderGratitude){
+          await funcV1New(v1, orderGratitude, RankEnums.V1, v1s.length)
+        }
       }
 
     } catch (error) {
