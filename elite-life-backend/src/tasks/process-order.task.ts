@@ -92,15 +92,15 @@ export class ProcessOrder {
           } else {
             // Nếu tồn tại, thực hiện UPDATE
             await queryRunner.manager
-            .createQueryBuilder()
-            .update(Wallets)
-            .set({
-              Available: () => `"Available" + ${valueCompany}`,
-              Total: () => `"Total" + ${valueCompany}`,
-            })
-            .where('"CollaboratorId" = :collaboratorId', { collaboratorId: IdCompany })  // Ensure the parameter name matches
-            .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
-            .execute();
+              .createQueryBuilder()
+              .update(Wallets)
+              .set({
+                Available: () => `"Available" + ${valueCompany}`,
+                Total: () => `"Total" + ${valueCompany}`,
+              })
+              .where('"CollaboratorId" = :collaboratorId', { collaboratorId: IdCompany })
+              .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
+              .execute();
 
           }
 
@@ -120,10 +120,10 @@ export class ProcessOrder {
 
           // chia tiền cho nvkd
           await this.calcSale(queryRunner, orderTemp);
-
+          var test1 = '1';
           // cập nhật cấp bậc cho user mua + parent
-          //await this.processSaleUpgrade(queryRunner, orderTemp);
-          
+          await this.processSaleUpgrade(queryRunner, orderTemp);
+          var test = '1';
 
           // cập nhật trạng thái
           await queryRunner.manager.save(
@@ -334,7 +334,7 @@ export class ProcessOrder {
       // Xóa thằng đầu tiên
       collaboratorList.shift();
       // Cập nhật giá trị tri ân cho tất cả các cha trong danh sách
-      if(parentList.length < 21) {
+      if (parentList.length < 21) {
         const totalAmount = 3450000 * 0.07;
         const paymentAmount = 11500 * parentList.length;
         const changeAmount = totalAmount - paymentAmount;
@@ -365,7 +365,7 @@ export class ProcessOrder {
               Available: () => `"Available" + ${changeAmount}`,
               Total: () => `"Total" + ${changeAmount}`,
             })
-            .where('"CollaboratorId" = :collaboratorId', { collaboratorId: IdCompany })  // Ensure the parameter name matches
+            .where('"CollaboratorId" = :collaboratorId', { collaboratorId: IdCompany })
             .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
             .execute();
         }
@@ -436,7 +436,7 @@ export class ProcessOrder {
               Available: () => `"Available" + ${gratitudeAmount}`,
               Total: () => `"Total" + ${gratitudeAmount}`,
             })
-            .where('"CollaboratorId" = :collaboratorId', { collaboratorId })
+            .where('"CollaboratorId" = :collaboratorId', { collaboratorId: collaboratorId })
             .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
             .execute();
         }
@@ -981,8 +981,10 @@ export class ProcessOrder {
 
   private async processSaleUpgrade(queryRunner: QueryRunner, order: Orders) {
     try {
+      let currentId = order.CollaboratorId;
       // B1: Khởi tạo danh sách ListParent và ListRankUpdate
       const ListParent: Collaborators[] = [];
+      // const parentListId: number[] = [];
       const ListRankUpdate: { collaboratorId: number; rank: RankEnums }[] = [];
 
       // Lấy thông tin cộng tác viên từ đơn hàng
@@ -993,36 +995,61 @@ export class ProcessOrder {
 
       ListRankUpdate.push({ collaboratorId: collaborator.Id, rank: collaborator.Rank });
 
-      // B3: Lấy danh sách cha và đẩy vào ListParent
-      let parent = await queryRunner.manager.findOne(Collaborators, {
-        where: { Id: collaborator.ParentId },
-      });
 
-      while (parent) {
-        ListParent.push(parent);
-        parent = await queryRunner.manager.findOne(Collaborators, {
-          where: { Id: parent.ParentId },
+
+
+      // Truy vấn ParentId
+      while (true) {
+        // Tạo UserName bằng tiền tố EL
+        const userName = `EL${currentId.toString().padStart(3, '0')}`;
+
+        // Truy vấn ParentId
+        const parent = await queryRunner.manager.findOne(Collaborators, {
+          where: { UserName: userName },
         });
+
+        if (!parent?.ParentId) {
+          // Nếu không tìm thấy ParentId thì dừng lặp
+          break;
+        }
+
+        // Lưu ParentId vào danh sách
+        ListParent.push(parent);
+
+        // Cập nhật currentId thành ParentId để tìm cha tiếp theo
+        currentId = parent.ParentId;
       }
+      ListParent.shift();
 
       for (const parent of ListParent) {
         let rankUpdated = false;
-        // Lấy tất cả con cháu chắt của thằng cha hiện tại
-        const descendantRanks = await this.getDescendantRanks(queryRunner, parent.Id, ListRankUpdate);
+        // Lấy tất cả con cháu của thằng cha hiện tại
+        const descendantIds = await this.getTreeByCollaboratorId(queryRunner, parent.Id);
 
-        // Kiểm tra điều kiện nâng rank
-        for (const condition of this.getRankConditions()) {
-          const eligibleRanks = descendantRanks.filter((rank) => condition.minRank.includes(rank));
-          if (eligibleRanks.length >= 3) {
-            // Update rank và thêm vào ListRankUpdate
-            parent.Rank = condition.rank;
-            await queryRunner.manager.save(parent);
-            ListRankUpdate.push({ collaboratorId: parent.Id, rank: parent.Rank });
-            rankUpdated = true;
-            break;
+        // Tính tổng chi tiêu của các descendant
+        const totalAmount = await this.orderRepository.sum('Payed', {
+          CollaboratorId: In(descendantIds),
+          CompletedDate: LessThanOrEqual(order.CompletedDate),
+        });
+
+        if (totalAmount >= 69_000_000) {
+          // Lấy tất cả con cháu chắt của thằng cha hiện tại
+          const descendantRanks = await this.getDescendantRanks(queryRunner, parent.Id, ListRankUpdate);
+
+          // Kiểm tra điều kiện nâng rank
+          for (const condition of this.getRankConditions()) {
+            const eligibleRanks = descendantRanks.filter((rank) => condition.minRank.includes(rank));
+            if (eligibleRanks.length >= 3) {
+              // Update rank và thêm vào ListRankUpdate
+              parent.Rank = condition.rank;
+              await queryRunner.manager.save(parent);
+              ListRankUpdate.push({ collaboratorId: parent.Id, rank: parent.Rank });
+              rankUpdated = true;
+              break;
+            }
           }
         }
-
+        
         if (!rankUpdated) {
           await this.processDescendantsForUpgrade(
             queryRunner,
@@ -1051,7 +1078,7 @@ export class ProcessOrder {
 
     const descendantRanks = descendants.map((descendant) => descendant.Rank);
 
-    // Thêm các rank từ ListRankUpdate
+    // Thêm các rank từ ListRankUpdate10
     ListRankUpdate.forEach((update) => {
       if (descendants.some((descendant) => descendant.Id === update.collaboratorId)) {
         descendantRanks.push(update.rank);
