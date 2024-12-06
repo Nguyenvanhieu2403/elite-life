@@ -25,7 +25,7 @@ export class TasksService {
 
 
   isProcessOrder: boolean = false;
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron('*/20 * 0-6 * * *')//CronExpression.EVERY_10_SECONDS)
   async processOrderTask() {
     if (this.isProcessOrder == false) {
       this.isProcessOrder = true;
