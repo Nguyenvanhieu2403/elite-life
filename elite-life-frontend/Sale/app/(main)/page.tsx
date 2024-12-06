@@ -298,18 +298,18 @@ const Dashboard = () => {
     }, [lazyState]);
 
 
-    useEffect(() => {
-        // initial call
+    // useEffect(() => {
+    //     // initial call
        
-        const intervalTimer = 1000 * 15
-        const intervalId = setInterval(() => {
-            retrieveCollaborator(false);
-            getUserInfo(false);
-            fetchPaymentList()
-        }, intervalTimer); // Set the desire    d interval in milliseconds
+    //     const intervalTimer = 1000 * 15
+    //     const intervalId = setInterval(() => {
+    //         retrieveCollaborator(false);
+    //         getUserInfo(false);
+    //         fetchPaymentList()
+    //     }, intervalTimer); // Set the desire    d interval in milliseconds
 
-        return () => clearInterval(intervalId);
-    }, [lazyState]);
+    //     return () => clearInterval(intervalId);
+    // }, [lazyState]);
 
     const getUserInfo = (doesResetBankInfo = true) => {
         HomeService.getInfo()
@@ -637,7 +637,9 @@ const Dashboard = () => {
                                         toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã tạo yêu cầu rút tiền thành công', life: 3000 });
                                         setIsDisabled(false);
                                         localStorage.removeItem('isDisabled');
-                                        // retrieveCollaborator();
+                                        //retrieveCollaborator(false);
+                                        getUserInfo(false);
+                                        fetchPaymentList()
                                     } else {
                                         toast.current?.show({ severity: 'error', summary: 'Thất bại', detail: response.message?.WithdrawalAmount, life: 3000 });
                                         setIsDisabled(false);
@@ -727,7 +729,8 @@ const Dashboard = () => {
                                         setWalletTypeTo(undefined)
                                         setPersonalTransferAmount(0)
                                         toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã chuyển tiền thành công', life: 3000 });
-                                        retrieveUserInfo()
+                                        getUserInfo(false);
+                                        fetchPaymentList()
                                         setIsDisabled(false);
                                         localStorage.removeItem('isDisabled');
                                         setRoseBalance(0);
@@ -809,7 +812,8 @@ const Dashboard = () => {
                                         setCollaboratorCode("")
                                         setInternalTransferAmount(0)
                                         toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã chuyển tiền thành công', life: 3000 });
-                                        retrieveUserInfo()
+                                        getUserInfo(false);
+                                        fetchPaymentList()
                                         setIsDisabled(false);
                                         localStorage.removeItem('isDisabled');
                                     } else {
