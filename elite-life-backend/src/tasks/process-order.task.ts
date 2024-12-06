@@ -120,10 +120,8 @@ export class ProcessOrder {
 
           // chia tiền cho nvkd
           await this.calcSale(queryRunner, orderTemp);
-          var test1 = '1';
           // cập nhật cấp bậc cho user mua + parent
-          await this.processSaleUpgrade(queryRunner, orderTemp);
-          var test = '1';
+          //await this.processSaleUpgrade(queryRunner, orderTemp);
 
           // cập nhật trạng thái
           await queryRunner.manager.save(

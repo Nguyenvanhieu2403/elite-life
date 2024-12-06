@@ -40,104 +40,91 @@ export class HomeController {
 
   @Post("info")
   async getInfo(@UserInfo() user: JwtPayloadType) {
-    let response: ResponseData = { status: false }
-    if (user?.collaboratorInfo == undefined) throw new UnauthorizedException()
+    let response: ResponseData = { status: false };
 
-    let collaInfo = await this.collaboratorsService.findOne({
-      where: { Id: user.collaboratorInfo.Id },
-      relations: {
-        Parent: true,
-        Bank: true,
-      }
-    });
+    // Kiểm tra quyền truy cập
+    if (!user?.collaboratorInfo) throw new UnauthorizedException();
 
-    let image = await this.uploadFilesService.findOne({
-      where: {
-        ForId: In([collaInfo.Id]),
-        Type: FileTypeEnums.Sale,
-        FileId: 20
-      },
-      order: { CreatedAt: "desc" }
-    });
-
+    // Truy vấn thông tin Collaborator và hình ảnh đồng thời
+    const [collaInfo, image] = await Promise.all([
+      this.collaboratorsService.findOne({
+        where: { Id: user.collaboratorInfo.Id },
+        relations: { Parent: true, Bank: true },
+      }),
+      this.uploadFilesService.findOne({
+        where: {
+          ForId: In([user.collaboratorInfo.Id]),
+          Type: FileTypeEnums.Sale,
+          FileId: 20,
+        },
+        order: { CreatedAt: "desc" },
+      }),
+    ]);
     (collaInfo as any).Image = null;
-    if (image) {
+    // Kiểm tra và gán hình ảnh nếu có
+    if (collaInfo && image) {
       let dirFile = this.configService.getOrThrow("app.dirFile", { infer: true });
-      if (FileHelper.Exist(path.resolve(dirFile, "Files", "Collaborator", image.FileName)))
-        (collaInfo as any).Image = `/Files/Collaborator/${image.FileName}`
+      if (FileHelper.Exist(path.resolve(dirFile, "Files", "Collaborator", image.FileName))) {
+        (collaInfo as any).Image = `/Files/Collaborator/${image.FileName}`;
+      } else {
+        (collaInfo as any).Image = null;
+      }
     }
 
-    let source = await this.walletsService.findOne({
-      where: {
-        CollaboratorId: user.collaboratorInfo.Id,
-        WalletTypeEnums: WalletTypeEnums.Source
-      }
-    })
+    // Truy vấn các ví cùng lúc (gộp vào một truy vấn để tối ưu)
+    const walletTypes = [
+      WalletTypeEnums.Source,
+      WalletTypeEnums.CustomerShare,
+      WalletTypeEnums.CustomerGratitude,
+      WalletTypeEnums.Sale1,
+      WalletTypeEnums.Sale2,
+      WalletTypeEnums.Sale3,
+    ];
 
-    let customerShare = await this.walletsService.findOne({
-      where: {
-        CollaboratorId: user.collaboratorInfo.Id,
-        WalletTypeEnums: WalletTypeEnums.CustomerShare
-      }
-    })
+    const wallets = await this.walletsService.find({
+      where: { CollaboratorId: user.collaboratorInfo.Id, WalletTypeEnums: In(walletTypes) },
+    });
 
-    let customerGratitude = await this.walletsService.findOne({
-      where: {
-        CollaboratorId: user.collaboratorInfo.Id,
-        WalletTypeEnums: WalletTypeEnums.CustomerGratitude
-      }
-    })
+    // Lọc các ví theo loại
+    const walletMap = wallets.reduce((acc, wallet) => {
+      acc[wallet.WalletTypeEnums] = wallet;
+      return acc;
+    }, {});
 
-    let sale1 = await this.walletsService.findOne({
-      where: {
-        CollaboratorId: user.collaboratorInfo.Id,
-        WalletTypeEnums: WalletTypeEnums.Sale1
-      }
-    })
-
-    let sale2 = await this.walletsService.findOne({
-      where: {
-        CollaboratorId: user.collaboratorInfo.Id,
-        WalletTypeEnums: WalletTypeEnums.Sale2
-      }
-    })
-
-    let sale3 = await this.walletsService.findOne({
-      where: {
-        CollaboratorId: user.collaboratorInfo.Id,
-        WalletTypeEnums: WalletTypeEnums.Sale3
-      }
-    })
-
-    let order = await this.ordersService.findOne({
+    // Truy vấn đơn hàng mới nhất
+    const order = await this.ordersService.findOne({
       where: { CollaboratorId: user.collaboratorInfo.Id },
       select: {
         Id: true,
         CommissionSaleMax: true,
         CommissionCustomerMax: true,
         CommissionCustomer: true,
-        CommissionSale: true
+        CommissionSale: true,
       },
-      order: {
-        CreatedAt: 'DESC'
-      }
-    })
+      order: { CreatedAt: "DESC" },
+    });
 
+    // Tính toán các số liệu cần thiết
     response.status = true;
     response.data = {
       Info: collaInfo,
-      Source: source?.Available ?? 0,
-      Customer: (customerShare ? customerShare.Available : 0) + (customerGratitude ? customerGratitude.Available : 0),
-      Sale: (sale1 ? sale1.Available : 0) + (sale2 ? sale2.Available : 0) + (sale3 ? sale3.Available : 0),
-      CustomerShare: customerShare ? customerShare.Available : 0,
-      CustomerGratitude: customerGratitude ? customerGratitude.Available : 0,
-      Sale1: sale1 ? sale1.Available : 0,
-      Sale2: sale2 ? sale2.Available : 0,
-      Sale3: sale3 ? sale3.Available : 0,
-      Order: order
+      Source: walletMap[WalletTypeEnums.Source]?.Available ?? 0,
+      Customer: (walletMap[WalletTypeEnums.CustomerShare]?.Available ?? 0) +
+                (walletMap[WalletTypeEnums.CustomerGratitude]?.Available ?? 0),
+      Sale: (walletMap[WalletTypeEnums.Sale1]?.Available ?? 0) +
+            (walletMap[WalletTypeEnums.Sale2]?.Available ?? 0) +
+            (walletMap[WalletTypeEnums.Sale3]?.Available ?? 0),
+      CustomerShare: walletMap[WalletTypeEnums.CustomerShare]?.Available ?? 0,
+      CustomerGratitude: walletMap[WalletTypeEnums.CustomerGratitude]?.Available ?? 0,
+      Sale1: walletMap[WalletTypeEnums.Sale1]?.Available ?? 0,
+      Sale2: walletMap[WalletTypeEnums.Sale2]?.Available ?? 0,
+      Sale3: walletMap[WalletTypeEnums.Sale3]?.Available ?? 0,
+      Order: order,
     };
-    return response
+
+    return response;
   }
+
 
   @Get('payment-list')
   async getPaymentList(
