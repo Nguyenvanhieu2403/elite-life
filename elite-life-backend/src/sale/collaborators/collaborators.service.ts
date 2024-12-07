@@ -376,29 +376,29 @@ export class CollaboratorsService {
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
-    const userWalletState = await queryRunner.manager.findOne(UserWalletStates, {
-      where: {
-        UserId: user.id,
-        WalletType: personalMoneyTransferDto.WalletTypeFrom,
-      },
-    });
+    // const userWalletState = await queryRunner.manager.findOne(UserWalletStates, {
+    //   where: {
+    //     UserId: user.id,
+    //     WalletType: personalMoneyTransferDto.WalletTypeFrom,
+    //   },
+    // });
 
-    if (userWalletState && userWalletState.Status === 'Pending') {
-      response.message = 'Đang có giao dịch rút tiền chưa hoàn tất. Vui lòng thử lại sau!';
-      return response;
-    }
+    // if (userWalletState && userWalletState.Status === 'Pending') {
+    //   response.message = 'Đang có giao dịch rút tiền chưa hoàn tất. Vui lòng thử lại sau!';
+    //   return response;
+    // }
 
-    // 2. Đặt trạng thái thành "Pending" trước khi bắt đầu giao dịch
-    if (!userWalletState) {
-      await queryRunner.manager.insert(UserWalletStates, {
-        UserId: user.id,
-        WalletType: personalMoneyTransferDto.WalletTypeFrom,
-        Status: 'Pending',
-      });
-    } else {
-      await queryRunner.manager.update(UserWalletStates, { Id: userWalletState.Id }, { Status: 'Pending' });
-    }
-    await queryRunner.startTransaction();
+    // // 2. Đặt trạng thái thành "Pending" trước khi bắt đầu giao dịch
+    // if (!userWalletState) {
+    //   await queryRunner.manager.insert(UserWalletStates, {
+    //     UserId: user.id,
+    //     WalletType: personalMoneyTransferDto.WalletTypeFrom,
+    //     Status: 'Pending',
+    //   });
+    // } else {
+    //   await queryRunner.manager.update(UserWalletStates, { Id: userWalletState.Id }, { Status: 'Pending' });
+    // }
+    // await queryRunner.startTransaction();
     try {
 
       
@@ -524,15 +524,15 @@ export class CollaboratorsService {
       }, user)
 
      
-      await queryRunner.commitTransaction();
+      // await queryRunner.commitTransaction();
       response.status = true;
     } catch (err) {
-      await queryRunner.rollbackTransaction();
+      // await queryRunner.rollbackTransaction();
       response.message = err.message;
     } finally {
       // processingWallets.delete(user.id);
        // // 4. Cập nhật trạng thái giao dịch thành "Done"
-       await queryRunner.manager.update(UserWalletStates, { UserId: user.id, WalletType: personalMoneyTransferDto.WalletTypeFrom, }, { Status: 'Done' });
+      //  await queryRunner.manager.update(UserWalletStates, { UserId: user.id, WalletType: personalMoneyTransferDto.WalletTypeFrom, }, { Status: 'Done' });
 
       await queryRunner.release();
     }
