@@ -613,7 +613,7 @@ const Dashboard = () => {
                                 </div>
                             </div>
                             <span className="pb-1">Các yêu cầu rút tiền sẽ tạm thu thuế thu nhập cá nhân 10%</span>
-                            <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={() => {
+                            <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={ async  () => {
                                 if (isDisabled) return; // Không làm gì nếu nút đang bị vô hiệu hóa
 
                                 setIsDisabled(true);
@@ -626,36 +626,35 @@ const Dashboard = () => {
                                 localStorage.setItem('isDisabled', 'true');
 
                                 message.current?.clear();
-                                WithdrawRequestService.create({
-                                    BankId: bankIdOptionSelected,
-                                    BankNumber: BankNumber,
-                                    BankOwner: BankOwner,
-                                    WithdrawalAmount: WithdrawAmount
-                                }).then((response: DefaultResponse) => {
-                                    if (response.status == true) {
-                                        setWithdrawAmount(null)
-                                        toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã tạo yêu cầu rút tiền thành công', life: 3000 });
-                                        setIsDisabled(false);
-                                        localStorage.removeItem('isDisabled');
-                                        //retrieveCollaborator(false);
+                                try {
+                                    // Gửi yêu cầu rút tiền
+                                    const response: DefaultResponse = await WithdrawRequestService.create({
+                                        BankId: bankIdOptionSelected,
+                                        BankNumber: BankNumber,
+                                        BankOwner: BankOwner,
+                                        WithdrawalAmount: WithdrawAmount
+                                    });
+                        
+                                    if (response.status === true) {
+                                        setWithdrawAmount(null);
+                                        toast.current?.show({ severity: 'success', summary: 'Thành công', detail: 'Bạn đã tạo yêu cầu rút tiền thành công', life: 3000 });
+                                        // Cập nhật thông tin người dùng và danh sách giao dịch
                                         getUserInfo(false);
-                                        fetchPaymentList()
+                                        fetchPaymentList();
                                     } else {
                                         toast.current?.show({ severity: 'error', summary: 'Thất bại', detail: response.message?.WithdrawalAmount, life: 3000 });
-                                        setIsDisabled(false);
-                                        localStorage.removeItem('isDisabled');
                                     }
-                                })
-                                    .catch((e) => {
-                                        catchAxiosError({
-                                            e, router, toast
-                                        })
-                                        setIsDisabled(false);
-                                        localStorage.removeItem('isDisabled');
-                                    })
+                                } catch (e) {
+                                    catchAxiosError({ e, router, toast });
+                                } finally {
+                                    // Đảm bảo vô hiệu hóa nút và xóa trạng thái sau khi hoàn tất (hoặc có lỗi)
+                                    setIsDisabled(false);
+                                    localStorage.removeItem('isDisabled');
+                                }
                             }}
                             disabled={isDisabled}
-                            >{isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Rút tiền"}</Button>
+                        >
+                            {isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Rút tiền"}</Button>
 
                         </TabPanel>
                         <TabPanel header="Rút hoa hồng">
@@ -707,7 +706,7 @@ const Dashboard = () => {
                                     }} type="text" className='w-full' />
                             </div>
                             <Messages ref={message} />
-                            <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={() => {
+                            <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={async () => {
                                 if (isDisabled) return; // Không làm gì nếu nút đang bị vô hiệu hóa
 
                                 setIsDisabled(true);
@@ -719,38 +718,35 @@ const Dashboard = () => {
                                 localStorage.setItem('isDisabled', 'true');
 
                                 message.current?.clear();
-                                HomeService.personalMoneyTransfer({
-                                    WalletTypeFrom: WalletTypeFrom,
-                                    WalletTypeTo: "Source",
-                                    Available: personalTransferAmount,
-                                }).then((response: DefaultResponse) => {
-                                    if (response.status == true) {
-                                        setWalletTypeFrom(undefined)
-                                        setWalletTypeTo(undefined)
-                                        setPersonalTransferAmount(0)
+                                try {
+                                    const response: DefaultResponse = await HomeService.personalMoneyTransfer({
+                                        WalletTypeFrom: WalletTypeFrom,
+                                        WalletTypeTo: "Source",
+                                        Available: personalTransferAmount,
+                                    });
+                        
+                                    if (response.status === true) {
+                                        setWalletTypeFrom(undefined);
+                                        setWalletTypeTo(undefined);
+                                        setPersonalTransferAmount(0);
                                         toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã chuyển tiền thành công', life: 3000 });
                                         getUserInfo(false);
-                                        fetchPaymentList()
-                                        setIsDisabled(false);
-                                        localStorage.removeItem('isDisabled');
+                                        fetchPaymentList();
                                         setRoseBalance(0);
                                     } else {
                                         displayErrorMessage({
                                             isExport: false, message, response
-                                        })
-                                        setIsDisabled(false);
-                                        localStorage.removeItem('isDisabled');
-                                        setRoseBalance(0);
+                                        });
                                     }
-                                })
-                                    .catch((e) => {
-                                        catchAxiosError({
-                                            e, router, toast
-                                        })
-                                        setIsDisabled(false);
-                                        localStorage.removeItem('isDisabled');
-                                        setRoseBalance(0);
-                                    })
+                                } catch (e) {
+                                    catchAxiosError({
+                                        e, router, toast
+                                    });
+                                } finally {
+                                    setIsDisabled(false);
+                                    localStorage.removeItem('isDisabled');
+                                    setRoseBalance(0);
+                                }
                             }}
                             disabled={isDisabled}
                             >{isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Chuyển tiền"}</Button>
@@ -790,7 +786,7 @@ const Dashboard = () => {
                             </div>
                             <Messages ref={message} />
 
-                            <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={() => {
+                            <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={async  () => {
                                 
                                 if (isDisabled) return; // Không làm gì nếu nút đang bị vô hiệu hóa
 
@@ -804,33 +800,29 @@ const Dashboard = () => {
                                 localStorage.setItem('isDisabled', 'true');
 
                                 message.current?.clear();
-                                HomeService.internalTransfer({
-                                    Available: InternalTransferAmount,
-                                    CollaboratorCode: collabListSelected
-                                }).then((response: DefaultResponse) => {
-                                    if (response.status == true) {
-                                        setCollaboratorCode("")
-                                        setInternalTransferAmount(0)
-                                        toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã chuyển tiền thành công', life: 3000 });
-                                        getUserInfo(false);
-                                        fetchPaymentList()
-                                        setIsDisabled(false);
-                                        localStorage.removeItem('isDisabled');
+                                try {
+                                    // Gửi yêu cầu chuyển tiền nội bộ
+                                    const response: DefaultResponse = await HomeService.internalTransfer({
+                                        Available: InternalTransferAmount,
+                                        CollaboratorCode: collabListSelected
+                                    });
+                        
+                                    if (response.status === true) {
+                                        setCollaboratorCode(""); // Xóa mã cộng tác viên
+                                        setInternalTransferAmount(0); // Đặt lại số tiền
+                                        toast.current?.show({ severity: 'success', summary: 'Thành công', detail: 'Bạn đã chuyển tiền thành công', life: 3000 });
+                                        getUserInfo(false); // Cập nhật lại thông tin người dùng
+                                        fetchPaymentList(); // Cập nhật lại danh sách giao dịch
                                     } else {
-                                        displayErrorMessage({
-                                            isExport: false, message, response
-                                        })
-                                        setIsDisabled(false);
-                                        localStorage.removeItem('isDisabled');
+                                        toast.current?.show({ severity: 'error', summary: 'Thất bại', detail: response.message, life: 3000 });
                                     }
-                                })
-                                    .catch((e) => {
-                                        catchAxiosError({
-                                            e, router, toast
-                                        })
-                                        setIsDisabled(false);
-                                        localStorage.removeItem('isDisabled');
-                                    })
+                                } catch (e) {
+                                    catchAxiosError({ e, router, toast });
+                                } finally {
+                                    // Đảm bảo vô hiệu hóa nút và xóa trạng thái sau khi hoàn tất (hoặc có lỗi)
+                                    setIsDisabled(false);
+                                    localStorage.removeItem('isDisabled');
+                                }
                             }} 
                             disabled={isDisabled}
                             >{isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Chuyển tiền"}</Button>

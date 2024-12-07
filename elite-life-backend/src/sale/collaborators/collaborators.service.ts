@@ -398,7 +398,7 @@ export class CollaboratorsService {
     // } else {
     //   await queryRunner.manager.update(UserWalletStates, { Id: userWalletState.Id }, { Status: 'Pending' });
     // }
-    // await queryRunner.startTransaction();
+    await queryRunner.startTransaction();
     try {
 
       
@@ -524,10 +524,10 @@ export class CollaboratorsService {
       }, user)
 
      
-      // await queryRunner.commitTransaction();
+      await queryRunner.commitTransaction();
       response.status = true;
     } catch (err) {
-      // await queryRunner.rollbackTransaction();
+      await queryRunner.rollbackTransaction();
       response.message = err.message;
     } finally {
       // processingWallets.delete(user.id);
