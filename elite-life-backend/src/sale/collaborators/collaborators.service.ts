@@ -366,10 +366,44 @@ export class CollaboratorsService {
   async personalMoneyTransfer(personalMoneyTransferDto: PersonalMoneyTransferDto, user: JwtPayloadType) {
     let response: ResponseData = { status: false }
 
+    const processingWallets = new Set<number>();
+    if (processingWallets.has(user.id)) {
+      response.message = 'Giao dịch đang được xử lý, vui lòng thử lại sau!';
+      return response;
+    }
+    
+    processingWallets.add(user.id);
+    
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+
+      
+
+      // // 1. Kiểm tra trạng thái giao dịch
+      // const userWalletState = await queryRunner.manager.findOne(UserWalletStates, {
+      //   where: {
+      //     UserId: user.id,
+      //     WalletType: personalMoneyTransferDto.WalletTypeFrom,
+      //   },
+      // });
+
+      // if (userWalletState && userWalletState.Status === 'Pending') {
+      //   response.message = 'Đang có giao dịch rút tiền chưa hoàn tất. Vui lòng thử lại sau!';
+      //   return response;
+      // }
+
+      // // 2. Đặt trạng thái thành "Pending" trước khi bắt đầu giao dịch
+      // if (!userWalletState) {
+      //   await queryRunner.manager.insert(UserWalletStates, {
+      //     UserId: user.id,
+      //     WalletType: personalMoneyTransferDto.WalletTypeFrom,
+      //     Status: 'Pending',
+      //   });
+      // } else {
+      //   await queryRunner.manager.update(UserWalletStates, { Id: userWalletState.Id }, { Status: 'Pending' });
+      // }
 
       if (personalMoneyTransferDto.WalletTypeFrom == WalletTypeEnums.Sale3) {
         response.message = 'NVKD không được rút tiền từ ví này !!!'
@@ -488,12 +522,16 @@ export class CollaboratorsService {
         RecordId: walletFrom?.Id
       }, user)
 
+      // // 4. Cập nhật trạng thái giao dịch thành "Done"
+      // await queryRunner.manager.update(UserWalletStates, { UserId: user.id, WalletType: personalMoneyTransferDto.WalletTypeFrom, }, { Status: 'Done' });
+
       await queryRunner.commitTransaction();
       response.status = true;
     } catch (err) {
       await queryRunner.rollbackTransaction();
       response.message = err.message;
     } finally {
+      processingWallets.delete(user.id);
       await queryRunner.release();
     }
 
