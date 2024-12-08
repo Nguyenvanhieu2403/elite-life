@@ -291,14 +291,22 @@ export class ProcessOrder {
 
       let parent = parents.length > 0 ? parents[0] : null;
 
-      // Lưu thông tin vào bảng BinaryTrees
-      await queryRunner.manager.save(
-        queryRunner.manager.create(BinaryTrees, {
-          CollaboratorId: order.CollaboratorId,
-          OrderId: order.Id,
-          ParentId: parent ? parent.Id : null,
-        } as DeepPartial<BinaryTrees>)
-      );
+      const existingRecord = await queryRunner.manager.findOne(BinaryTrees, {
+        where: {
+          CollaboratorId: order.CollaboratorId
+        },
+      });
+      
+      if (!existingRecord) {
+        await queryRunner.manager.save(
+          queryRunner.manager.create(BinaryTrees, {
+            CollaboratorId: order.CollaboratorId,
+            OrderId: order.Id,
+            ParentId: parent ? parent.Id : null,
+          })
+        );
+      }
+      
 
 
       // tri ân
