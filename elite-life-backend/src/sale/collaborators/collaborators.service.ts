@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Body, Injectable, Post } from '@nestjs/common';
 import { Collaborators } from 'src/database/entities/collaborator/collaborators.entity';
 import { UserWalletStates } from 'src/database/entities/collaborator/userWalletStates.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -25,6 +25,7 @@ import { CreateAvailableDepositDto, InternalTransferDto, PersonalMoneyTransferDt
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { UserActivitiesService } from '../user-activities/user-activities.service';
 import { Contracts } from 'src/database/entities/collaborator/contracts.entity';
+import { UserInfo } from 'src/utils/decorator/jwt.decorator';
 @Injectable()
 export class CollaboratorsService {
   constructor(
@@ -363,112 +364,272 @@ export class CollaboratorsService {
   }
 
   //chuyển tiền cá nhân 
-  async personalMoneyTransfer(personalMoneyTransferDto: PersonalMoneyTransferDto, user: JwtPayloadType) {
-    let response: ResponseData = { status: false }
+  // async personalMoneyTransfer(personalMoneyTransferDto: PersonalMoneyTransferDto, user: JwtPayloadType) {
+  //   let response: ResponseData = { status: false }
 
-    // const processingWallets = new Set<number>();
-    // if (processingWallets.has(user.id)) {
-    //   response.message = 'Giao dịch đang được xử lý, vui lòng thử lại sau!';
-    //   return response;
-    // }
-    
-    // processingWallets.add(user.id);
+  //   // const processingWallets = new Set<number>();
+  //   // if (processingWallets.has(user.id)) {
+  //   //   response.message = 'Giao dịch đang được xử lý, vui lòng thử lại sau!';
+  //   //   return response;
+  //   // }
 
+  //   // processingWallets.add(user.id);
+
+  //   const queryRunner = this.dataSource.createQueryRunner();
+  //   await queryRunner.connect();
+  //   // const userWalletState = await queryRunner.manager.findOne(UserWalletStates, {
+  //   //   where: {
+  //   //     UserId: user.id,
+  //   //     WalletType: personalMoneyTransferDto.WalletTypeFrom,
+  //   //   },
+  //   // });
+
+  //   // if (userWalletState && userWalletState.Status === 'Pending') {
+  //   //   response.message = 'Đang có giao dịch rút tiền chưa hoàn tất. Vui lòng thử lại sau!';
+  //   //   return response;
+  //   // }
+
+  //   // // 2. Đặt trạng thái thành "Pending" trước khi bắt đầu giao dịch
+  //   // if (!userWalletState) {
+  //   //   await queryRunner.manager.insert(UserWalletStates, {
+  //   //     UserId: user.id,
+  //   //     WalletType: personalMoneyTransferDto.WalletTypeFrom,
+  //   //     Status: 'Pending',
+  //   //   });
+  //   // } else {
+  //   //   await queryRunner.manager.update(UserWalletStates, { Id: userWalletState.Id }, { Status: 'Pending' });
+  //   // }
+  //   await queryRunner.startTransaction();
+  //   try {
+
+
+
+  //     // 1. Kiểm tra trạng thái giao dịch
+
+
+  //     if (personalMoneyTransferDto.WalletTypeFrom == WalletTypeEnums.Sale3) {
+  //       response.message = 'NVKD không được rút tiền từ ví này !!!'
+
+  //       return response
+  //     }
+
+  //     if (personalMoneyTransferDto.WalletTypeFrom == WalletTypeEnums.Source) {
+  //       response.message = 'Có lỗi xảy ra, vui lòng thử lại !!!'
+
+  //       return response
+  //     }
+
+  //     let info = await queryRunner.manager.findOne(Collaborators, { where: { Id: user.collaboratorInfo.Id } })
+  //     if (!info) {
+  //       response.message = 'Vui lòng kiểm tra lại thông tin, tài khoản không hợp lệ!!!'
+
+  //       return response
+  //     }
+  //     if (info.Rank == RankEnums.None) {
+  //       response.message = 'NVKD chưa đủ điều kiện rút tiền !!!'
+
+  //       return response
+  //     }
+  //     if (personalMoneyTransferDto.WalletTypeFrom == WalletTypeEnums.Sale2) {
+  //       if (info.Rank == RankEnums.V) {
+  //         response.message = 'NVKD chưa được rút tiền từ ví này !!!'
+
+  //         return response
+  //       }
+  //     }
+
+  //     let walletFrom = await queryRunner.manager.findOne(Wallets, {
+  //       where: {
+  //         CollaboratorId: user.collaboratorInfo.Id,
+  //         WalletTypeEnums: personalMoneyTransferDto.WalletTypeFrom,
+  //       }
+  //     })
+  //     if (
+  //       !walletFrom || walletFrom.Available < personalMoneyTransferDto.Available
+  //     ) {
+  //       response.message = 'Số dư không đủ, thao tác không thành công !!!'
+
+  //       return response
+  //     }
+
+  //     let walletTo = await queryRunner.manager.findOne(Wallets, {
+  //       where: {
+  //         CollaboratorId: user.collaboratorInfo.Id,
+  //         WalletTypeEnums: WalletTypeEnums.Source,
+  //       }
+  //     })
+
+  //     let resultFrom = await queryRunner.manager.createQueryBuilder()
+  //       .update(Wallets)
+  //       .set({
+  //         Available: () => `"Available" - ${personalMoneyTransferDto.Available}`,
+  //       } as QueryDeepPartialEntity<Wallets>)
+  //       .where({
+  //         Id: walletFrom.Id,
+  //         WalletTypeEnums: personalMoneyTransferDto.WalletTypeFrom,
+  //         Available: Raw(alias => `${alias} - ${personalMoneyTransferDto.Available} >=0`),
+  //       } as FindOptionsWhere<Wallets>)
+  //       .returning("*")
+  //       .execute();
+
+  //     let resultTo = await queryRunner.manager.createQueryBuilder()
+  //       .insert()
+  //       .into(Wallets)
+  //       .values({
+  //         CollaboratorId: user.collaboratorInfo.Id,
+  //         Available: personalMoneyTransferDto.Available,
+  //         WalletTypeEnums: WalletTypeEnums.Source,
+  //         Total: walletTo ? walletTo.Total + personalMoneyTransferDto.Available : personalMoneyTransferDto.Available,
+  //       })
+  //       .onConflict(`("CollaboratorId", "WalletTypeEnums") DO UPDATE SET 
+  //         "Total" = "Wallets"."Total" + ${personalMoneyTransferDto.Available},
+  //         "Available" = "Wallets"."Available" + ${personalMoneyTransferDto.Available}`)
+  //       .execute();
+
+  //     let walletTypeStringEnums: { [key: string]: string } = {
+  //       Source: "Cá nhân",
+  //       CustomerShare: "Đồng chia",
+  //       CustomerGratitude: "Tri ân",
+  //       Sale1: "Hoa hồng giới thiệu",
+  //       Sale2: "Thưởng lãnh đạo",
+  //     }
+
+  //     await queryRunner.manager.save(
+  //       queryRunner.manager.create(WalletDetails, {
+  //         WalletId: walletFrom?.Id ?? resultFrom.raw[0].Id,
+  //         WalletType: personalMoneyTransferDto.WalletTypeFrom,
+  //         Value: -personalMoneyTransferDto.Available,
+  //         Note: `Rút hoa hồng từ ví ${walletTypeStringEnums[personalMoneyTransferDto.WalletTypeFrom]}`
+  //       })
+  //     )
+
+  //     await queryRunner.manager.save(
+  //       queryRunner.manager.create(WalletDetails, {
+  //         WalletId: walletTo?.Id ?? resultTo.raw[0].Id,
+  //         WalletType: WalletTypeEnums.Source,
+  //         Value: personalMoneyTransferDto.Available,
+  //         Note: `Nạp tiền từ ví ${walletTypeStringEnums[personalMoneyTransferDto.WalletTypeFrom]}`
+  //       })
+  //     )
+
+  //     let difference = await this.userActivitiesService.findDifference(walletFrom, resultFrom.raw[0])
+
+  //     await this.userActivitiesService.create({
+  //       NewRequestData: difference.newData,
+  //       OldRequestData: difference.oldData,
+  //       UserId: user.id,
+  //       Action: user.Action[0],
+  //       Function: user.Function,
+  //       Description: `Chuyển : ${personalMoneyTransferDto.Available}ELP từ ví ${personalMoneyTransferDto.WalletTypeFrom}`,
+  //       RecordId: walletFrom?.Id
+  //     }, user)
+
+
+  //     await queryRunner.commitTransaction();
+  //     response.status = true;
+  //   } catch (err) {
+  //     await queryRunner.rollbackTransaction();
+  //     response.message = err.message;
+  //   } finally {
+  //     // processingWallets.delete(user.id);
+  //      // // 4. Cập nhật trạng thái giao dịch thành "Done"
+  //     //  await queryRunner.manager.update(UserWalletStates, { UserId: user.id, WalletType: personalMoneyTransferDto.WalletTypeFrom, }, { Status: 'Done' });
+
+  //     await queryRunner.release();
+  //   }
+
+  //   return response
+  // }
+  @Post('validatePersonalMoneyTransfer')
+  async validatePersonalMoneyTransfer(
+    @Body() personalMoneyTransferDto: PersonalMoneyTransferDto,
+    @UserInfo() user: JwtPayloadType,
+  ) {
+    let response: ResponseData = { status: false };
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
-    // const userWalletState = await queryRunner.manager.findOne(UserWalletStates, {
-    //   where: {
-    //     UserId: user.id,
-    //     WalletType: personalMoneyTransferDto.WalletTypeFrom,
-    //   },
-    // });
-
-    // if (userWalletState && userWalletState.Status === 'Pending') {
-    //   response.message = 'Đang có giao dịch rút tiền chưa hoàn tất. Vui lòng thử lại sau!';
-    //   return response;
-    // }
-
-    // // 2. Đặt trạng thái thành "Pending" trước khi bắt đầu giao dịch
-    // if (!userWalletState) {
-    //   await queryRunner.manager.insert(UserWalletStates, {
-    //     UserId: user.id,
-    //     WalletType: personalMoneyTransferDto.WalletTypeFrom,
-    //     Status: 'Pending',
-    //   });
-    // } else {
-    //   await queryRunner.manager.update(UserWalletStates, { Id: userWalletState.Id }, { Status: 'Pending' });
-    // }
-    await queryRunner.startTransaction();
     try {
-
-      
-
-      // 1. Kiểm tra trạng thái giao dịch
-      
-
       if (personalMoneyTransferDto.WalletTypeFrom == WalletTypeEnums.Sale3) {
-        response.message = 'NVKD không được rút tiền từ ví này !!!'
-
-        return response
+        response.message = 'NVKD không được rút tiền từ ví này !!!';
+        return response;
       }
 
       if (personalMoneyTransferDto.WalletTypeFrom == WalletTypeEnums.Source) {
-        response.message = 'Có lỗi xảy ra, vui lòng thử lại !!!'
-
-        return response
+        response.message = 'Có lỗi xảy ra, vui lòng thử lại !!!';
+        return response;
       }
 
-      let info = await queryRunner.manager.findOne(Collaborators, { where: { Id: user.collaboratorInfo.Id } })
+      let info = await this.collaboratorsRepository.findOneById(user.collaboratorInfo.Id);
       if (!info) {
-        response.message = 'Vui lòng kiểm tra lại thông tin, tài khoản không hợp lệ!!!'
-
-        return response
+        response.message = 'Vui lòng kiểm tra lại thông tin, tài khoản không hợp lệ!!!';
+        return response;
       }
       if (info.Rank == RankEnums.None) {
-        response.message = 'NVKD chưa đủ điều kiện rút tiền !!!'
-
-        return response
+        response.message = 'NVKD chưa đủ điều kiện rút tiền !!!';
+        return response;
       }
-      if (personalMoneyTransferDto.WalletTypeFrom == WalletTypeEnums.Sale2) {
-        if (info.Rank == RankEnums.V) {
-          response.message = 'NVKD chưa được rút tiền từ ví này !!!'
-
-          return response
-        }
+      if (personalMoneyTransferDto.WalletTypeFrom == WalletTypeEnums.Sale2 && info.Rank == RankEnums.V) {
+        response.message = 'NVKD chưa được rút tiền từ ví này !!!';
+        return response;
       }
 
+      let walletFrom = await queryRunner.manager.findOne(Wallets, {
+              where: {
+                CollaboratorId: user.collaboratorInfo.Id,
+                WalletTypeEnums: personalMoneyTransferDto.WalletTypeFrom,
+              }
+            })
+      if (!walletFrom || walletFrom.Available < personalMoneyTransferDto.Available) {
+        response.message = 'Số dư không đủ, thao tác không thành công !!!';
+        return response;
+      }
+
+      response.status = true;
+      response.message = 'Validation thành công!';
+    } catch (err) {
+      response.message = err.message;
+    }
+
+    return response;
+  }
+
+  @Post('updatePersonalMoneyTransfer')
+  async updatePersonalMoneyTransfer(
+    @Body() personalMoneyTransferDto: PersonalMoneyTransferDto,
+    @UserInfo() user: JwtPayloadType,
+  ) {
+    let response: ResponseData = { status: false };
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
       let walletFrom = await queryRunner.manager.findOne(Wallets, {
         where: {
           CollaboratorId: user.collaboratorInfo.Id,
           WalletTypeEnums: personalMoneyTransferDto.WalletTypeFrom,
-        }
-      })
-      if (
-        !walletFrom || walletFrom.Available < personalMoneyTransferDto.Available
-      ) {
-        response.message = 'Số dư không đủ, thao tác không thành công !!!'
-
-        return response
-      }
+        },
+      });
 
       let walletTo = await queryRunner.manager.findOne(Wallets, {
         where: {
           CollaboratorId: user.collaboratorInfo.Id,
           WalletTypeEnums: WalletTypeEnums.Source,
-        }
-      })
+        },
+      });
 
+      // Cập nhật ví
       let resultFrom = await queryRunner.manager.createQueryBuilder()
         .update(Wallets)
         .set({
           Available: () => `"Available" - ${personalMoneyTransferDto.Available}`,
-        } as QueryDeepPartialEntity<Wallets>)
+        })
         .where({
           Id: walletFrom.Id,
           WalletTypeEnums: personalMoneyTransferDto.WalletTypeFrom,
           Available: Raw(alias => `${alias} - ${personalMoneyTransferDto.Available} >=0`),
-        } as FindOptionsWhere<Wallets>)
-        .returning("*")
+        })
         .execute();
 
       let resultTo = await queryRunner.manager.createQueryBuilder()
@@ -481,64 +642,42 @@ export class CollaboratorsService {
           Total: walletTo ? walletTo.Total + personalMoneyTransferDto.Available : personalMoneyTransferDto.Available,
         })
         .onConflict(`("CollaboratorId", "WalletTypeEnums") DO UPDATE SET 
-          "Total" = "Wallets"."Total" + ${personalMoneyTransferDto.Available},
-          "Available" = "Wallets"."Available" + ${personalMoneyTransferDto.Available}`)
+              "Total" = "Wallets"."Total" + ${personalMoneyTransferDto.Available},
+              "Available" = "Wallets"."Available" + ${personalMoneyTransferDto.Available}`)
         .execute();
 
-      let walletTypeStringEnums: { [key: string]: string } = {
-        Source: "Cá nhân",
-        CustomerShare: "Đồng chia",
-        CustomerGratitude: "Tri ân",
-        Sale1: "Hoa hồng giới thiệu",
-        Sale2: "Thưởng lãnh đạo",
-      }
-
+      // Lưu lịch sử giao dịch
       await queryRunner.manager.save(
         queryRunner.manager.create(WalletDetails, {
           WalletId: walletFrom?.Id ?? resultFrom.raw[0].Id,
           WalletType: personalMoneyTransferDto.WalletTypeFrom,
           Value: -personalMoneyTransferDto.Available,
-          Note: `Rút hoa hồng từ ví ${walletTypeStringEnums[personalMoneyTransferDto.WalletTypeFrom]}`
-        })
-      )
+          Note: `Rút hoa hồng từ ví`,
+        }),
+      );
 
       await queryRunner.manager.save(
         queryRunner.manager.create(WalletDetails, {
           WalletId: walletTo?.Id ?? resultTo.raw[0].Id,
           WalletType: WalletTypeEnums.Source,
           Value: personalMoneyTransferDto.Available,
-          Note: `Nạp tiền từ ví ${walletTypeStringEnums[personalMoneyTransferDto.WalletTypeFrom]}`
-        })
-      )
+          Note: `Nạp tiền vào ví`,
+        }),
+      );
 
-      let difference = await this.userActivitiesService.findDifference(walletFrom, resultFrom.raw[0])
-
-      await this.userActivitiesService.create({
-        NewRequestData: difference.newData,
-        OldRequestData: difference.oldData,
-        UserId: user.id,
-        Action: user.Action[0],
-        Function: user.Function,
-        Description: `Chuyển : ${personalMoneyTransferDto.Available}ELP từ ví ${personalMoneyTransferDto.WalletTypeFrom}`,
-        RecordId: walletFrom?.Id
-      }, user)
-
-     
       await queryRunner.commitTransaction();
       response.status = true;
     } catch (err) {
       await queryRunner.rollbackTransaction();
       response.message = err.message;
     } finally {
-      // processingWallets.delete(user.id);
-       // // 4. Cập nhật trạng thái giao dịch thành "Done"
-      //  await queryRunner.manager.update(UserWalletStates, { UserId: user.id, WalletType: personalMoneyTransferDto.WalletTypeFrom, }, { Status: 'Done' });
-
       await queryRunner.release();
     }
 
-    return response
+    return response;
   }
+
+
 
   //chuyển tiền nội bộ
   async internalTransfer(internalTransferDto: InternalTransferDto, user: JwtPayloadType) {

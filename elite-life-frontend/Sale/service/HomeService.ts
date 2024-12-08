@@ -138,5 +138,18 @@ class HomeService {
                 return response.data;
             });
     }
+    validatePersonalMoneyTransfer(obj: {
+        WalletTypeFrom: string,
+        WalletTypeTo: string,
+        Available: number,
+    }) {
+        return http
+            .post('/sale/collaborator/validatePersonalMoneyTransfer', obj, {
+                headers: authHeader(),
+            })
+            .then(response => {
+                return response.data;
+            });
+    }
 }
 export default new HomeService();

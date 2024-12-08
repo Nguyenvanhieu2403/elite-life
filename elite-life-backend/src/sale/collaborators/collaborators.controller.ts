@@ -266,7 +266,7 @@ export class CollaboratorsController {
         @Body() personalMoneyTransferDto: PersonalMoneyTransferDto,
         @UserInfo() user: JwtPayloadType,
     ) {
-        return await this.collaboratorsService.personalMoneyTransfer(personalMoneyTransferDto, user)
+        return await this.collaboratorsService.updatePersonalMoneyTransfer(personalMoneyTransferDto, user)
     }
 
     @Get("create-internalTransfer")
