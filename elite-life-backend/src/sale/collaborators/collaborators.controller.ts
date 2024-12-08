@@ -300,4 +300,21 @@ export class CollaboratorsController {
         return await this.collaboratorsService.internalTransfer(internalTransferDto, user)
     }
 
+    @Post('updatePersonalMoneyTransfer')
+    async updatePersonalMoneyTransfer(
+      @Body() personalMoneyTransferDto: PersonalMoneyTransferDto,
+      @UserInfo() user: JwtPayloadType,
+    ) {
+      return await this.collaboratorsService.updatePersonalMoneyTransfer(personalMoneyTransferDto, user)
+    }
+
+
+    @Post('validatePersonalMoneyTransfer')
+    async validatePersonalMoneyTransfer(
+      @Body() personalMoneyTransferDto: PersonalMoneyTransferDto,
+      @UserInfo() user: JwtPayloadType,
+    ) {
+      return await this.collaboratorsService.validatePersonalMoneyTransfer(personalMoneyTransferDto, user)
+    }
+
 }
