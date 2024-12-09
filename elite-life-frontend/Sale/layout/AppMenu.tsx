@@ -70,9 +70,9 @@ const AppMenu = () => {
                     to: '/tutorial/culture'
                 },
                 {
-                    label: 'Hotline: 0924455959',
+                    label: 'Hotline: 0967364999',
                     icon: 'pi pi-fw pi-phone',
-                    to: "tel:0924455959",
+                    to: "tel:0967364999",
                     target: "_blank"
                 },
                 {
