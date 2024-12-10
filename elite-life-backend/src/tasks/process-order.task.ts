@@ -59,6 +59,7 @@ export class ProcessOrder {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
+        await queryRunner.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
         try {
           let orderTemp = await queryRunner.manager.findOne(Orders, {
             where: { Id: order.Id },
@@ -70,7 +71,7 @@ export class ProcessOrder {
 
           // Nhận 49% về công ty
           let valueCompany = orderTemp.Value * 0.49;
-          const IdCompany = 114;
+          const IdCompany = 8082;
           let walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
             where: {
               CollaboratorId: IdCompany,
@@ -119,10 +120,8 @@ export class ProcessOrder {
 
           // chia tiền cho nvkd
           await this.calcSale(queryRunner, orderTemp);
-          var test1 = '1';
           // cập nhật cấp bậc cho user mua + parent
           await this.processSaleUpgrade(queryRunner, orderTemp);
-          var test = '1';
 
           // cập nhật trạng thái
           await queryRunner.manager.save(
@@ -292,14 +291,22 @@ export class ProcessOrder {
 
       let parent = parents.length > 0 ? parents[0] : null;
 
-      // Lưu thông tin vào bảng BinaryTrees
-      await queryRunner.manager.save(
-        queryRunner.manager.create(BinaryTrees, {
-          CollaboratorId: order.CollaboratorId,
-          OrderId: order.Id,
-          ParentId: parent ? parent.Id : null,
-        } as DeepPartial<BinaryTrees>)
-      );
+      const existingRecord = await queryRunner.manager.findOne(BinaryTrees, {
+        where: {
+          CollaboratorId: order.CollaboratorId
+        },
+      });
+      
+      if (!existingRecord) {
+        await queryRunner.manager.save(
+          queryRunner.manager.create(BinaryTrees, {
+            CollaboratorId: order.CollaboratorId,
+            OrderId: order.Id,
+            ParentId: parent ? parent.Id : null,
+          })
+        );
+      }
+      
 
 
       // tri ân
@@ -337,7 +344,7 @@ export class ProcessOrder {
         const totalAmount = 3450000 * 0.07;
         const paymentAmount = 11500 * parentList.length;
         const changeAmount = totalAmount - paymentAmount;
-        const IdCompany = 114;
+        const IdCompany = 8080;
         let walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
           where: {
             CollaboratorId: IdCompany,
@@ -888,10 +895,9 @@ export class ProcessOrder {
             }
           }
         )
-        if (orderGratitude) {
+        if(orderGratitude){
           await funcV1New(v1, orderGratitude, RankEnums.V1, v1s.length)
         }
-
       }
 
       // rank v2
@@ -911,7 +917,7 @@ export class ProcessOrder {
             }
           }
         )
-        if (orderGratitude) {
+        if(orderGratitude){
           await funcV1New(v1, orderGratitude, RankEnums.V2, v1s.length)
         }
       }
@@ -934,7 +940,7 @@ export class ProcessOrder {
             }
           }
         )
-        if (orderGratitude) {
+        if(orderGratitude){
           await funcV1New(v1, orderGratitude, RankEnums.V3, v1s.length)
         }
       }
@@ -956,7 +962,7 @@ export class ProcessOrder {
             }
           }
         )
-        if (orderGratitude) {
+        if(orderGratitude){
           await funcV1New(v1, orderGratitude, RankEnums.V4, v1s.length)
         }
       }
@@ -978,7 +984,7 @@ export class ProcessOrder {
             }
           }
         )
-        if (orderGratitude) {
+        if(orderGratitude){
           await funcV1New(v1, orderGratitude, RankEnums.V5, v1s.length)
         }
       }
