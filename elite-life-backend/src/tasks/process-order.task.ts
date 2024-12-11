@@ -310,39 +310,35 @@ export class ProcessOrder {
 
 
       // tri ân
-      let currentId = order.CollaboratorId;
       const maxLevels = 21; // Tối đa 21 cha
-      const parentList: number[] = []; // Danh sách ID cha
+      // const parentList: number[] = []; // Danh sách ID cha
       const collaboratorList: number[] = []; // Danh sách CollaboratorId cha
+      let orderNumber = order.Id;
+
 
       for (let level = 0; level < maxLevels; level++) {
-        // Tạo UserName bằng tiền tố EL
-        const userName = `EL${currentId.toString().padStart(3, '0')}`;
-
-        // Truy vấn ParentId
-        const parent = await queryRunner.manager.findOne(Collaborators, {
-          where: { UserName: userName },
-          select: ["ParentId"],
-        });
-        collaboratorList.push(currentId);
-        if (!parent?.ParentId) {
-          // Nếu không tìm thấy ParentId thì dừng lặp
-          break;
+        if (orderNumber%2!=0){
+          orderNumber = (orderNumber -1)/2;
+        }
+        else{
+          orderNumber = orderNumber/2;
         }
 
-        // Lưu ParentId vào danh sách
-        parentList.push(parent.ParentId);
+        const parent = await queryRunner.manager.findOne(Orders, {
+          where: { Id: orderNumber },
+          select: ["CollaboratorId"],
+        });
 
-
-        // Cập nhật currentId thành ParentId để tìm cha tiếp theo
-        currentId = parent.ParentId;
+        if (!parent?.CollaboratorId) {
+          // Nếu không tìm thấy CollaboratorId thì dừng lặp
+          break;
+        }
+        collaboratorList.push(parent.CollaboratorId);
       }
-      // Xóa thằng đầu tiên
-      collaboratorList.shift();
       // Cập nhật giá trị tri ân cho tất cả các cha trong danh sách
-      if (parentList.length < 21) {
+      if (collaboratorList.length < 21) {
         const totalAmount = 3450000 * 0.07;
-        const paymentAmount = 11500 * parentList.length;
+        const paymentAmount = 11500 * collaboratorList.length;
         const changeAmount = totalAmount - paymentAmount;
         const IdCompany = 8080;
         let walletUpdateResult = await queryRunner.manager.findOne(Wallets, {
@@ -381,7 +377,7 @@ export class ProcessOrder {
               WalletId: walletUpdateResult.Id,
               WalletType: walletUpdateResult.WalletTypeEnums,
               Value: changeAmount,
-              Note: `Tri ân tiền thừa 7% sau khi đã chia ${parentList.length} tầng từ ${order.Collaborator.UserName}`,
+              Note: `Tri ân tiền thừa 7% sau khi đã chia ${collaboratorList.length} tầng từ ${order.Collaborator.UserName}`,
             })
           );
         }

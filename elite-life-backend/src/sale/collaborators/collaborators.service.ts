@@ -540,7 +540,10 @@ export class CollaboratorsService {
 
   //   return response
   // }
-  async validatePersonalMoneyTransfer(personalMoneyTransferDto: PersonalMoneyTransferDto,user: JwtPayloadType,
+  @Post('validatePersonalMoneyTransfer')
+  async validatePersonalMoneyTransfer(
+    @Body() personalMoneyTransferDto: PersonalMoneyTransferDto,
+    @UserInfo() user: JwtPayloadType,
   ) {
     let response: ResponseData = { status: false };
     const queryRunner = this.dataSource.createQueryRunner();
@@ -590,7 +593,10 @@ export class CollaboratorsService {
     return response;
   }
 
-  async updatePersonalMoneyTransfer(personalMoneyTransferDto: PersonalMoneyTransferDto,user: JwtPayloadType,
+  @Post('updatePersonalMoneyTransfer')
+  async updatePersonalMoneyTransfer(
+    @Body() personalMoneyTransferDto: PersonalMoneyTransferDto,
+    @UserInfo() user: JwtPayloadType,
   ) {
     let response: ResponseData = { status: false };
 
