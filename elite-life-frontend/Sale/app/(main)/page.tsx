@@ -536,7 +536,7 @@ const Dashboard = () => {
                     </div>
                 </div>
             </div>
-            <div className="col-12 lg:col-4 xl:col-4 mb-20 w-50-us">
+            {/* <div className="col-12 lg:col-4 xl:col-4 mb-20 w-50-us">
                 <div className="nh-all">
                     <div className="nh-left">
                         <h3>Nạp tiền</h3>
@@ -559,7 +559,7 @@ const Dashboard = () => {
                         }} src={`https://img.vietqr.io/image/${bankName}-${accountNumber}-qr_only.png?addInfo=${info?.UserName}&accountName=${accountName}`} />
                     </div>
                 </div>
-            </div>
+            </div> */}
             <div className="col-12 lg:col-6 xl:col-6 mb-20">
                 <div className="table-card">
                     <TabView>
