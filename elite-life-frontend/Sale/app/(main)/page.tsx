@@ -712,6 +712,7 @@ const Dashboard = () => {
                                     if (isDisabled) return; // Không làm gì nếu nút đang bị vô hiệu hóa
 
                                     setIsDisabled(true);
+
                                     if (personalTransferAmount <= 0 || !WalletTypeFrom) {
                                         setIsDisabled(false);
                                         return;
@@ -721,65 +722,35 @@ const Dashboard = () => {
 
                                     message.current?.clear();
 
-                                    // Gọi API validate trước
-                                    HomeService.validatePersonalMoneyTransfer({
+                                    HomeService.personalMoneyTransfer({
                                         WalletTypeFrom: WalletTypeFrom,
                                         WalletTypeTo: "Source",
                                         Available: personalTransferAmount,
                                     })
-                                        .then((validateResponse: DefaultResponse) => {
-                                            if (validateResponse.status === true) {
-                                                // Nếu validate thành công, tiếp tục gọi API personalMoneyTransfer
-                                                HomeService.personalMoneyTransfer({
-                                                    WalletTypeFrom: WalletTypeFrom,
-                                                    WalletTypeTo: "Source",
-                                                    Available: personalTransferAmount,
-                                                })
-                                                    .then((response: DefaultResponse) => {
-                                                        if (response.status == true) {
-                                                            setWalletTypeFrom(undefined);
-                                                            setWalletTypeTo(undefined);
-                                                            setPersonalTransferAmount(0);
-                                                            toast.current?.show({
-                                                                severity: 'success',
-                                                                summary: 'Thành công',
-                                                                detail: 'Bạn đã chuyển tiền thành công',
-                                                                life: 3000,
-                                                            });
-                                                            retrieveUserInfo();
-                                                            setIsDisabled(false);
-                                                            localStorage.removeItem('isDisabled');
-                                                            setRoseBalance(0);
-                                                        } else {
-                                                            displayErrorMessage({
-                                                                isExport: false,
-                                                                message,
-                                                                response,
-                                                            });
-                                                            setIsDisabled(false);
-                                                            localStorage.removeItem('isDisabled');
-                                                            setRoseBalance(0);
-                                                        }
-                                                    })
-                                                    .catch((e) => {
-                                                        catchAxiosError({
-                                                            e,
-                                                            router,
-                                                            toast,
-                                                        });
-                                                        setIsDisabled(false);
-                                                        localStorage.removeItem('isDisabled');
-                                                        setRoseBalance(0);
-                                                    });
+                                        .then((response: DefaultResponse) => {
+                                            if (response.status === true) {
+                                                setWalletTypeFrom(undefined);
+                                                setWalletTypeTo(undefined);
+                                                setPersonalTransferAmount(0);
+                                                toast.current?.show({
+                                                    severity: 'success',
+                                                    summary: 'Thành công',
+                                                    detail: 'Bạn đã chuyển tiền thành công',
+                                                    life: 3000,
+                                                });
+                                                retrieveUserInfo();
+                                                setIsDisabled(false);
+                                                localStorage.removeItem('isDisabled');
+                                                setRoseBalance(0);
                                             } else {
-                                                // Nếu validate thất bại, hiển thị thông báo lỗi
                                                 displayErrorMessage({
                                                     isExport: false,
                                                     message,
-                                                    response: validateResponse,
+                                                    response,
                                                 });
                                                 setIsDisabled(false);
                                                 localStorage.removeItem('isDisabled');
+                                                setRoseBalance(0);
                                             }
                                         })
                                         .catch((e) => {
@@ -790,12 +761,14 @@ const Dashboard = () => {
                                             });
                                             setIsDisabled(false);
                                             localStorage.removeItem('isDisabled');
+                                            setRoseBalance(0);
                                         });
                                 }}
                                 disabled={isDisabled}
                             >
                                 {isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Chuyển tiền"}
                             </Button>
+
                         </TabPanel>
                         <TabPanel header="Chuyển tiền HT">
                             <div className="dashboard-statisic-card-small bg-1">
