@@ -150,9 +150,13 @@ const Dashboard = () => {
         }
     }, []);
 
-    const accountName = "Công ty cổ phần tập đoàn ELITE LIFE";
-    const accountNumber = "368568686"
-    const bankName = "VIB"
+    // const accountName = "Công ty cổ phần tập đoàn ELITE LIFE";
+    // const accountNumber = "368568686"
+    // const bankName = "VIB"
+
+    const accountName = "Nguyễn Thị Hồng Nhung";
+    const accountNumber = "8030170129999"
+    const bankName = "MB"
 
     const applyLightTheme = () => {
         const lineOptions: ChartOptions = {
@@ -536,7 +540,7 @@ const Dashboard = () => {
                     </div>
                 </div>
             </div>
-            {/* <div className="col-12 lg:col-4 xl:col-4 mb-20 w-50-us">
+            <div className="col-12 lg:col-4 xl:col-4 mb-20 w-50-us">
                 <div className="nh-all">
                     <div className="nh-left">
                         <h3>Nạp tiền</h3>
@@ -544,8 +548,8 @@ const Dashboard = () => {
                         <p>Ngân hàng: {bankName}</p>
                         <p>Số tài khoản: {accountNumber}</p>
                         <p>CTK: {accountName}</p>
-                        <p>Nội dung ck: Chuyển khoản tiền mua hàng {info?.UserName}
-                            <CopyToClipboard text={`Chuyển khoản tiền mua hàng ${info?.UserName}`} onCopy={
+                        <p>Nội dung ck: {info?.UserName}
+                            <CopyToClipboard text={`${info?.UserName}`} onCopy={
                                 () => toast.current?.show({ severity: 'success', summary: 'Thành công', detail: ' Bạn đã copy thành công', life: 3000 })
 
                             } >
@@ -559,7 +563,7 @@ const Dashboard = () => {
                         }} src={`https://img.vietqr.io/image/${bankName}-${accountNumber}-qr_only.png?addInfo=${info?.UserName}&accountName=${accountName}`} />
                     </div>
                 </div>
-            </div> */}
+            </div>
             <div className="col-12 lg:col-6 xl:col-6 mb-20">
                 <div className="table-card">
                     <TabView>
