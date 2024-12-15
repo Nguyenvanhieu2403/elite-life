@@ -613,7 +613,7 @@ const Dashboard = () => {
                                 </div>
                             </div>
                             <span className="pb-1">Các yêu cầu rút tiền sẽ tạm thu thuế thu nhập cá nhân 10%</span>
-                            <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={async () => {
+                            {/* <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={async () => {
                                 if (isDisabled) return; // Không làm gì nếu nút đang bị vô hiệu hóa
 
                                 setIsDisabled(true);
@@ -654,7 +654,7 @@ const Dashboard = () => {
                             }}
                                 disabled={isDisabled}
                             >
-                                {isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Rút tiền"}</Button>
+                                {isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Rút tiền"}</Button> */}
 
                         </TabPanel>
                         <TabPanel header="Rút hoa hồng">
@@ -706,7 +706,7 @@ const Dashboard = () => {
                                     }} type="text" className='w-full' />
                             </div>
                             <Messages ref={message} />
-                            <Button
+                            {/* <Button
                                 className="btn-withdraw w-full d-flex justify-content-center align-items-center"
                                 onClick={() => {
                                     if (isDisabled) return; // Không làm gì nếu nút đang bị vô hiệu hóa
@@ -767,7 +767,7 @@ const Dashboard = () => {
                                 disabled={isDisabled}
                             >
                                 {isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Chuyển tiền"}
-                            </Button>
+                            </Button> */}
 
                         </TabPanel>
                         <TabPanel header="Chuyển tiền HT">
@@ -805,7 +805,7 @@ const Dashboard = () => {
                             </div>
                             <Messages ref={message} />
 
-                            <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={async () => {
+                            {/* <Button className="btn-withdraw w-full d-flex justify-content-center align-items-center" onClick={async () => {
 
                                 if (isDisabled) return; // Không làm gì nếu nút đang bị vô hiệu hóa
 
@@ -844,7 +844,7 @@ const Dashboard = () => {
                                 }
                             }}
                                 disabled={isDisabled}
-                            >{isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Chuyển tiền"}</Button>
+                            >{isDisabled ? "Vui lòng chờ giao dịch thành công..." : "Chuyển tiền"}</Button> */}
                         </TabPanel>
                     </TabView>
 
