@@ -22,6 +22,8 @@ import { InputText } from "primereact/inputtext";
 import { Calendar } from "primereact/calendar";
 import moment from "moment";
 import { ProgressSpinner } from "primereact/progressspinner";
+import saveAs from "file-saver";
+import axios from "axios";
 
 export interface CollabContractResponse {
     Name: string,
@@ -148,6 +150,42 @@ const System = () => {
     const hideDialog = () => {
         setShowDialog(false)
     }
+    const downloadPdf = async () => {
+        setLoading(true); // Bắt đầu tải, cập nhật trạng thái loading
+
+        try {
+            // Gọi API download hợp đồng
+            const response = await ContractService.download();
+
+            // Kiểm tra nếu response chứa dữ liệu hợp lệ
+            if (response) {
+                // Tạo đối tượng Blob từ dữ liệu PDF
+                const blob = new Blob([response], { type: 'application/pdf' });
+
+                // Tạo URL tạm thời cho Blob
+                const downloadUrl = URL.createObjectURL(blob);
+
+                // Tạo thẻ <a> để trigger việc tải file
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = 'contract.docx'; // Tên file tải về
+                link.click(); // Bắt đầu tải file
+
+                // Thông báo thành công
+                toast.current?.show({ severity: 'success', summary: 'Thành công', detail: 'Tải hợp đồng thành công!', life: 3000 });
+            } else {
+                toast.current?.show({ severity: 'error', summary: 'Thất bại', detail: 'Tải hợp đồng thất bại!', life: 3000 });
+            }
+        } catch (error) {
+            // Nếu có lỗi xảy ra trong quá trình tải
+            toast.current?.show({ severity: 'error', summary: 'Thất bại', detail: 'Tải hợp đồng thất bại!', life: 3000 });
+            console.error(error);
+        } finally {
+            setLoading(false); // Kết thúc việc tải, cập nhật lại trạng thái loading
+        }
+    }
+
+    
     return (
         <>
             <Toast ref={toast} />
@@ -163,6 +201,7 @@ const System = () => {
                         }
                     </React.Fragment> : ""
                 }
+                
                 <div className="d-flex">
                     <div className="w-49" style={{ paddingRight: 15 }}>
                         <h3>Bên B</h3>
@@ -190,7 +229,9 @@ const System = () => {
                             </>
 
                         }
+                        
                     </div>
+                    
                     <div className="w-49" style={{ paddingLeft: 15 }}>
                         <h3>Bên A</h3>
                         <p>CÔNG TY TNHH NGHIÊN CỨU VÀ SẢN XUẤT SINH HỌC HANA, THỰC THUỘC CTY CP TẬP ĐOÀN ELITE LIFE - JAPAN.</p>
@@ -202,6 +243,7 @@ const System = () => {
 
 
                 </div>
+            <Button label="Tải hợp đồng" icon="pi pi-download" onClick={downloadPdf} />
             </div>
             <Dialog visible={showDialog}
                 style={{ width: DialogStyle.width.medium, height: DialogStyle.height.medium }}

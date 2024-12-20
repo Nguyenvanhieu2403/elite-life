@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UploadedFile, UseInterceptors, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, UploadedFile, UseInterceptors, UseGuards, Res } from '@nestjs/common';
 import { ContractService } from './contract.service';
 import { UpdateCollaboratorSignDto } from './dto/create-contract.dto';
-import { UpdateContractDto } from './dto/update-contract.dto';
 import * as path from 'path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
@@ -11,9 +10,10 @@ import { JwtPayloadType } from 'src/utils/strategies/types/jwt-payload.type';
 import { ConfigService } from '@nestjs/config';
 import { AllConfigType } from 'src/config/config.type';
 import { ResponseData } from 'src/utils/schemas/common.schema';
-import * as fs from 'fs';
 import { AuthGuard } from '@nestjs/passport';
 import { FileHelper } from 'src/utils/file-helper';
+import { Response } from 'express';
+
 
 @ApiTags("Sale/Contract")
 @ApiBearerAuth()
@@ -104,5 +104,44 @@ export class ContractController {
       // outputPdfPath,
       updateCollaboratorSignDto,
       user);
+  }
+
+  @Get('download')
+  async download(
+    @UserInfo() user: JwtPayloadType,
+    @Res() res: Response
+  ) {
+    let response: ResponseData = { status: false };
+
+    const dirFile = this.configService.getOrThrow("app.dirFile", { infer: true });
+    const dirTemplate = this.configService.getOrThrow("app.dirTemplate", { infer: true });
+    const templatePath = path.join(dirTemplate, './word/contractTemp.docx');
+    const outputPath = path.join(dirFile, `./word/outPutWord${user.collaboratorInfo.UserName}.docx`);
+
+    try {
+      let contract = await this.contractService.findOne({ where: { UserName: user.collaboratorInfo.UserName } });
+
+      if (!contract) {
+        if (!FileHelper.Exist(outputPath)) {
+          let pdfResult = await this.contractService.pdfNoSign(
+            templatePath,
+            outputPath,
+            user
+          );
+          if (!pdfResult.status) {
+            response.message = pdfResult.message;
+            return res.status(400).json(response);
+          }
+        }
+      }
+      // Nếu hợp đồng tồn tại hoặc đã được tạo, gửi file DOCX
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename=contract_${user.collaboratorInfo.UserName}.docx`);
+      return res.sendFile(outputPath); // Trả về file Word
+    } catch (error) {
+      console.error("Error generating Word file:", error);
+      response.message = "Failed to download contract Word file.";
+      return res.status(500).json(response);
+    }
   }
 }

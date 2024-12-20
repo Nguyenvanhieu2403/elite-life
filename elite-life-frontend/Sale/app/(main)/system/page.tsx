@@ -35,7 +35,7 @@ const System = () => {
             _expandedKeys[node.key] = true;
 
             for (let child of node.children) {
-                if(child.Name.includes("F3")){
+                if(child.Name &&child.Name.includes("F3")){
                     continue;
                 }
                 expandNode(child, _expandedKeys);

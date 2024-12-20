@@ -23,5 +23,16 @@ class ContractService {
                 return response.data;
             });
     }
+
+    download() {
+        return http
+            .get(`/sale/contract/download`, {
+                headers: authHeader(),
+                responseType: "blob",
+            })
+            .then(response => {
+                return response.data;
+            });
+    }
 }
 export default new ContractService();

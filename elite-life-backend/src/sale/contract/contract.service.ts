@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { UpdateContractDto } from './dto/update-contract.dto';
 import { Contracts } from 'src/database/entities/collaborator/contracts.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ResponseData } from 'src/utils/schemas/common.schema';
@@ -9,7 +8,6 @@ import * as fs from 'fs';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import * as convert from 'libreoffice-convert';
-import * as docxConverter from 'docx-pdf';
 import * as path from 'path'
 import * as moment from 'moment'
 import { ConfigService } from '@nestjs/config';
@@ -18,8 +16,7 @@ import { FileHelper } from 'src/utils/file-helper';
 import { JwtPayloadType } from 'src/utils/strategies/types/jwt-payload.type';
 import { UpdateCollaboratorSignDto } from './dto/create-contract.dto';
 import * as mammoth from 'mammoth';
-import * as pdf from 'html-pdf';
-import * as PDFDocument from 'pdfkit';
+import * as libre from 'libreoffice-convert';
 
 @Injectable()
 export class ContractService {
@@ -291,6 +288,31 @@ export class ContractService {
     await this.contractsRepository.softDelete(id);
     response.status = true;
     return response
+  }
+
+  async convertWordToPdf(inputPath: string, outputPath: string): Promise<{ status: boolean, message?: string } > {
+    try {
+      // Đọc file DOCX vào bộ nhớ
+      const fileBuffer = fs.readFileSync(inputPath);
+  
+      // Chuyển đổi DOCX sang PDF
+      const converted = await new Promise<Buffer>((resolve, reject) => {
+        libre.convert(fileBuffer, '.pdf', undefined, (err, done) => {
+          if (err) {
+            return reject(err);
+          }
+          resolve(done as Buffer);  // Đảm bảo kiểu dữ liệu là Buffer
+        });
+      });
+  
+      // Ghi file PDF vào hệ thống
+      fs.writeFileSync(outputPath, converted);
+  
+      return { status: true };
+    } catch (error) {
+      console.error('Error converting DOCX to PDF:', error);
+      return { status: false, message: 'Failed to convert Word document to PDF.' };
+    }
   }
 
 }
