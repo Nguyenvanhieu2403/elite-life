@@ -236,9 +236,9 @@ const System = () => {
                         <h3>Bên A</h3>
                         <p>CÔNG TY TNHH NGHIÊN CỨU VÀ SẢN XUẤT SINH HỌC HANA, THỰC THUỘC CTY CP TẬP ĐOÀN ELITE LIFE - JAPAN.</p>
                         <p>Mã số doanh nghiệp: 0901155104, cấp ngày 15 tháng 02 năm 2024.</p>
-                        <p>Đại diện: Ông LƯƠNG VĂN NGHỊ.</p>
-                        <p>Chức vụ: Tổng giám đốc</p>
-                        <p>Điện thoại: 0909679955</p>
+                        <p>Đại diện: .</p>
+                        <p>Chức vụ: </p>
+                        <p>Điện thoại: </p>
                     </div>
 
 
