@@ -115,8 +115,8 @@ export class ProcessOrder {
             );
           }
 
-          // Nhận 16% về công ty
-          let valueCompany1 = orderTemp.Value * 0.16;
+          // Nhận 12% về công ty
+          let valueCompany1 = orderTemp.Value * 0.12;
           const IdCompany1 = 8181;
           let walletUpdateResult1 = await queryRunner.manager.findOne(Wallets, {
             where: {
@@ -156,7 +156,53 @@ export class ProcessOrder {
                 WalletId: walletUpdateResult1.Id,
                 WalletType: walletUpdateResult1.WalletTypeEnums,
                 Value: valueCompany1,
-                Note: `Tri ân 16% từ ${orderTemp.Collaborator.UserName}`,
+                Note: `Tri ân 12% từ ${orderTemp.Collaborator.UserName}`,
+              })
+            );
+          }
+
+          // Nhận 4% về công ty
+          let valueCompany2 = orderTemp.Value * 0.04;
+          const IdCompany2 = 9998;
+          let walletUpdateResult2 = await queryRunner.manager.findOne(Wallets, {
+            where: {
+              CollaboratorId: IdCompany2,
+              WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
+            },
+          });
+
+          if (!walletUpdateResult2) {
+            // Nếu không tồn tại, thực hiện INSERT
+            walletUpdateResult2 = await queryRunner.manager.save(
+              queryRunner.manager.create(Wallets, {
+                CollaboratorId: IdCompany2,
+                WalletTypeEnums: WalletTypeEnums.CustomerGratitude,
+                Available: valueCompany2,
+                Total: valueCompany2,
+              } as DeepPartial<Wallets>)
+            );
+          } else {
+            // Nếu tồn tại, thực hiện UPDATE
+            await queryRunner.manager
+              .createQueryBuilder()
+              .update(Wallets)
+              .set({
+                Available: () => `"Available" + ${valueCompany2}`,
+                Total: () => `"Total" + ${valueCompany2}`,
+              })
+              .where('"CollaboratorId" = :collaboratorId', { collaboratorId: IdCompany2 })
+              .andWhere('"WalletTypeEnums" = :walletType', { walletType: 'CustomerGratitude' })
+              .execute();
+
+          }
+
+          if (walletUpdateResult2) {
+            await queryRunner.manager.save(
+              queryRunner.manager.create(WalletDetails, {
+                WalletId: walletUpdateResult2.Id,
+                WalletType: walletUpdateResult2.WalletTypeEnums,
+                Value: valueCompany2,
+                Note: `Tri ân 4% từ ${orderTemp.Collaborator.UserName}`,
               })
             );
           }
