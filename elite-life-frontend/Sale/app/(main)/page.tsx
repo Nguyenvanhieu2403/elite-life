@@ -154,8 +154,8 @@ const Dashboard = () => {
     // const accountNumber = "368568686"
     // const bankName = "VIB"
 
-    const accountName = "Nguyễn Thị Hồng Nhung";
-    const accountNumber = "8030170129999"
+    const accountName = "CTY TNHH DT VA CHUYEN GIAO CN HANA";
+    const accountNumber = "188838668"
     const bankName = "MB"
 
     const applyLightTheme = () => {
